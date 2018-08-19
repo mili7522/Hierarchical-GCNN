@@ -31,8 +31,8 @@ def load_dataset():
             s = line[:-1].split(',')
             a = keys.index(s[0])
             b = keys.index(s[1])
-            adj_mat[a, 0, b] = 0
-            adj_mat[b, 0, a] = 0
+            adj_mat[a, 0, b] = 1
+            adj_mat[b, 0, a] = 1
     return features, adj_mat, labels
 
 dataset = load_dataset()
@@ -80,14 +80,14 @@ rep = []
 exp = experiment.GGCNNExperiment('2018-06-06-SA1', '2018-06-06-sa1', SA1Experiment(neurons = n, blocks = l))
 # exp = experiment.SingleGraphCNNExperiment('2018-06-06-SA1', '2018-06-06-sa1', SA1Experiment(neurons = n, blocks = l))
 
-exp.num_iterations = 20
+exp.num_iterations = 500
 exp.optimizer = 'adam'
 
 exp.debug = True  # Was True
 
 exp.preprocess_data(dataset)
 
-# exp.train_idx, exp.test_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]
+# train_idx, test_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]
 test_idx, train_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]  # Reversed to get more samples in the test set than the training set
 
 
@@ -95,5 +95,5 @@ exp.create_data(train_idx, test_idx)
 exp.build_network()
 results = exp.run()
 
-exp.build_network()
-results = exp.run()
+# exp.build_network()
+# results = exp.run()

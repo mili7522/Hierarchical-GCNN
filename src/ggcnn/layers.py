@@ -45,42 +45,65 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
         
         return tf.nn.batch_normalization(input, mean, var, beta, gamma, 1e-3)
       
-def batch_mat_mult(A, B):
-    A_shape = tf.shape(A)
-    A_reshape = tf.reshape(A, [-1, A_shape[-1]])
+# def batch_mat_mult(A, B):
+#     A_shape = tf.shape(A)
+#     A_reshape = tf.reshape(A, [-1, A_shape[-1]])
     
-    # So the Tensor has known dimensions
-    if B.get_shape()[1] == None:
-        axis_2 = -1
-    else:
-        axis_2 = B.get_shape()[1]
-    result = tf.matmul(A_reshape, B)
-    result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
+#     # So the Tensor has known dimensions
+#     if B.get_shape()[1] == None:
+#         axis_2 = -1
+#     else:
+#         axis_2 = B.get_shape()[1]
+#     result = tf.matmul(A_reshape, B)
+#     result = tf.reshape(result, tf.stack([A_shape[0], A_shape[1], axis_2]))
+#     return result
+    
+# def make_softmax_layer(V, axis=1, name=None):
+#     with tf.variable_scope(name, default_name='Softmax') as scope:
+#         max_value = tf.reduce_max(V, axis=axis, keep_dims=True)
+#         exp = tf.exp(tf.subtract(V, max_value))
+#         prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
+#         return prob
+
+def update_adjacency_weighting(V, A, M):
+    d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
+    d1 = tf.Print(d1, [tf.shape(d1)])
+    d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V)))
+    d2 = tf.Print(d2, [d2])
+    D = tf.nn.relu( d1 - 2 * d2 + tf.transpose(d1) )  # Set negative values to 0
+    D = tf.sqrt(D)
+    # D = tf.matrix_set_diag(D, tf.zeros(D.get_shape()[0].value))
+    D = tf.Print(D, [D])
+    G = tf.exp(tf.negative(D))
+    G = tf.Print(G, [tf.reduce_sum(G), tf.reduce_sum(A)])
+    # G = tf.divide(G, tf.reduce_sum(G, axis = 1))
+    result = tf.multiply(A,tf.expand_dims(G,1))
+    result = tf.Print(result, [tf.reduce_sum(result)])
     return result
-    
-def make_softmax_layer(V, axis=1, name=None):
-    with tf.variable_scope(name, default_name='Softmax') as scope:
-        max_value = tf.reduce_max(V, axis=axis, keep_dims=True)
-        exp = tf.exp(tf.subtract(V, max_value))
-        prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
-        return prob
+    # return tf.multiply(A
 
-def update_adjacency_weighting():
-    pass
-
-def make_graphcnn_layer(V, A, no_filters, name=None):
+def make_graphcnn_layer(V, A, no_filters, name = None):
     with tf.variable_scope(name, default_name='Graph-CNN') as scope:
-        no_A = A.get_shape()[2].value
-        no_features = V.get_shape()[2].value
+        # A.shape = (N, 1, N)
+        # V.shape = (N, C)
+        # Shape indices decreased by 1 compared to default Graph-CNN
+        no_A = A.get_shape()[1].value
+        no_features = V.get_shape()[1].value
         W = make_variable_with_weight_decay('weights', [no_features*no_A, no_filters], stddev=math.sqrt(1.0/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
         W_I = make_variable_with_weight_decay('weights_I', [no_features, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
         b = make_bias_variable('bias', [no_filters])
 
+        # if M is not None:
+        M = make_variable_with_weight_decay('M', [no_features, no_features], stddev=math.sqrt(1.0/(no_features**3)))
+        A = update_adjacency_weighting(V, A, M)
+
         A_shape = tf.shape(A)
-        A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1]*no_A, A_shape[1]]))
+        A_reshape = tf.reshape(A, tf.stack([A_shape[0]*no_A, A_shape[0]]))
         n = tf.matmul(A_reshape, V)
-        n = tf.reshape(n, [-1, A_shape[1], no_A*no_features])
-        result = batch_mat_mult(n, W) + batch_mat_mult(V, W_I) + b
+        n = tf.reshape(n, [A_shape[0], no_A*no_features])
+        # result = batch_mat_mult(n, W) + batch_mat_mult(V, W_I) + b
+        # n = tf.matmul(A, V)
+        result = tf.matmul(n, W) + tf.matmul(V, W_I) + b
         return result
     
 def make_embedding_layer(V, no_filters, name=None):
@@ -88,8 +111,9 @@ def make_embedding_layer(V, no_filters, name=None):
         no_features = V.get_shape()[-1].value
         W = make_variable_with_weight_decay('weights', [no_features, no_filters], stddev=1.0/math.sqrt(no_features))
         b = make_bias_variable('bias', [no_filters])
-        V_reshape = tf.reshape(V, (-1, no_features))
-        s = tf.slice(tf.shape(V), [0], [len(V.get_shape())-1])
-        s = tf.concat([s, tf.stack([no_filters])], 0)
-        result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
+        # V_reshape = tf.reshape(V, (-1, no_features))
+        # s = tf.slice(tf.shape(V), [0], [len(V.get_shape())-1])
+        # s = tf.concat([s, tf.stack([no_filters])], 0)
+        # result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
+        result = tf.matmul(V, W) + b
         return result

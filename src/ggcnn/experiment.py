@@ -40,11 +40,14 @@ class GGCNNExperiment():
         self.largest_graph = dataset[0].shape[0]
         self.graph_size = [self.largest_graph]
         
-        self.graph_vertices = np.expand_dims(dataset[0].astype(np.float32), axis=0)
-        self.graph_adjacency = np.expand_dims(dataset[1].astype(np.float32), axis=0)
-        self.graph_labels = np.expand_dims(dataset[2].astype(np.int64), axis=0)
+        # self.graph_vertices = np.expand_dims(dataset[0].astype(np.float32), axis=0)
+        # self.graph_adjacency = np.expand_dims(dataset[1].astype(np.float32), axis=0)
+        # self.graph_labels = np.expand_dims(dataset[2].astype(np.int64), axis=0)
+        self.graph_vertices = dataset[0].astype(np.float32)
+        self.graph_adjacency = dataset[1].astype(np.float32)
+        self.graph_labels = dataset[2].astype(np.int64)
         
-        self.no_samples = self.graph_labels.shape[1]
+        self.no_samples = self.graph_labels.shape[0]  # Decreased from 1
         
         # single_sample = [self.graph_vertices, self.graph_adjacency, self.graph_labels, self.graph_size]
 
@@ -61,13 +64,17 @@ class GGCNNExperiment():
                 adjacency = self.graph_adjacency
                 labels = self.graph_labels
 
-                train_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
-                train_input_mask[:, self.train_idx, :] = 1
+                # train_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
+                # train_input_mask[:, self.train_idx, :] = 1
+                train_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
+                train_input_mask[self.train_idx, :] = 1
 
                 self.train_input = [vertices, adjacency, labels, train_input_mask]
                 
-                test_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
-                test_input_mask[:, self.test_idx, :] = 1
+                # test_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
+                # test_input_mask[:, self.test_idx, :] = 1
+                test_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
+                test_input_mask[self.test_idx, :] = 1
                 self.test_input = [vertices, adjacency, labels, test_input_mask]
                 
                 
@@ -77,6 +84,7 @@ class GGCNNExperiment():
         
         with tf.variable_scope('loss') as scope:
             # self.net.current_V = tf.Print(self.net.current_V, [tf.reduce_mean(self.net.current_mask)])
+            # self.net.current_V = tf.Print(self.net.current_V, [tf.shape(self.net.current_V), tf.shape(self.net.labels)])
             # self.net.current_V = tf.stop_gradient(tf.abs(self.net.current_mask-1) * self.net.current_V) + self.net.current_mask * self.net.current_V
 
             inv_sum = (1./tf.reduce_sum(self.net.current_mask))
@@ -84,7 +92,7 @@ class GGCNNExperiment():
             cross_entropy = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(cross_entropy))
             cross_entropy = tf.reduce_sum(cross_entropy)*inv_sum
 
-            correct_prediction = tf.cast(tf.equal(tf.argmax(self.net.current_V, 2), self.net.labels), tf.float32)
+            correct_prediction = tf.cast(tf.equal(tf.argmax(self.net.current_V, 1), self.net.labels), tf.float32)
             correct_prediction = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(correct_prediction))
             accuracy = tf.reduce_sum(correct_prediction)*inv_sum
             
@@ -105,7 +113,7 @@ class GGCNNExperiment():
             
             #### Added to compute prediction
 #            y_pred = tf.nn.softmax(self.net.current_V)
-            self.y_pred_cls = tf.argmax(self.net.current_V, 2)
+            self.y_pred_cls = tf.argmax(self.net.current_V, 1)
             ####
 
     def create_input_variable(self, input):
