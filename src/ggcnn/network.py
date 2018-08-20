@@ -7,6 +7,7 @@ class GraphCNNNetwork(object):
         self.current_mask = None
         self.labels = None
         self.network_debug = False
+        self.M = None
         
     def create_network(self, input):
         self.current_V = input[0]
@@ -50,3 +51,8 @@ class GraphCNNNetwork(object):
                 batch_mean, batch_var = tf.nn.moments(self.current_V, np.arange(len(self.current_V.get_shape())-1))
                 self.current_V = tf.Print(self.current_V, [tf.shape(self.current_V), batch_mean, batch_var], message='"%s" V Shape, Mean, Var:' % scope.name)
         return self.current_V
+
+    def make_adjacency_adjustment_layer(self, name = None):
+        with tf.variable_scope(name, default_name='AdjacencyAdjustment') as scope: 
+            self.current_A, self.M = update_adjacency_weighting(self.current_V, self.current_A)
+        # self.M = make_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.001))

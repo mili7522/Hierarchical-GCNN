@@ -44,6 +44,7 @@ class SA1Experiment():
     
     def create_network(self, net, input):
         net.create_network(input)
+        net.make_adjacency_adjustment_layer()
         net.make_embedding_layer(self.neurons)
         net.make_dropout_layer()
         
@@ -53,7 +54,7 @@ class SA1Experiment():
             net.make_embedding_layer(self.neurons)
             net.make_dropout_layer()
         
-        net.make_graphcnn_layer(10, name='final', with_bn=False, with_act_func = False)
+        net.make_embedding_layer(10, name='final', with_bn=False, with_act_func = False)
 
 
 no_folds = 5
@@ -80,7 +81,7 @@ rep = []
 exp = experiment.GGCNNExperiment('2018-06-06-SA1', '2018-06-06-sa1', SA1Experiment(neurons = n, blocks = l))
 # exp = experiment.SingleGraphCNNExperiment('2018-06-06-SA1', '2018-06-06-sa1', SA1Experiment(neurons = n, blocks = l))
 
-exp.num_iterations = 500
+exp.num_iterations = 1000
 exp.optimizer = 'adam'
 
 exp.debug = True  # Was True

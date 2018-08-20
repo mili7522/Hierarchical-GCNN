@@ -81,6 +81,7 @@ class SA1Experiment():
     
     def create_network(self, net, input):
         net.create_network(input)
+        net.make_adjacency_adjustment_layer()
         net.make_embedding_layer(self.neurons)
         net.make_dropout_layer()
         

@@ -92,6 +92,8 @@ class GGCNNExperiment():
             cross_entropy = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(cross_entropy))
             cross_entropy = tf.reduce_sum(cross_entropy)*inv_sum
 
+            # cross_entropy = tf.Print(cross_entropy, [tf.gradients(cross_entropy, self.net.M)[0]])
+
             correct_prediction = tf.cast(tf.equal(tf.argmax(self.net.current_V, 1), self.net.labels), tf.float32)
             correct_prediction = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(correct_prediction))
             accuracy = tf.reduce_sum(correct_prediction)*inv_sum
@@ -179,7 +181,7 @@ class GGCNNExperiment():
         self.print_ext('Starting training. train_batch_size:', self.train_batch_size, 'test_batch_size:', self.test_batch_size)
         wasKeyboardInterrupt = False
 
-        writer = tf.summary.FileWriter('./Graphs', tf.get_default_graph())
+        # writer = tf.summary.FileWriter('./Graphs', tf.get_default_graph())
 
         try:
             total_training = 0.0
@@ -221,7 +223,7 @@ class GGCNNExperiment():
             coord.request_stop()
             coord.join(threads)
             self.print_ext('Cleanup completed!')
-            writer.close()
+            # writer.close()
             if wasKeyboardInterrupt:
                 raise raisedEx
             
