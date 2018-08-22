@@ -33,6 +33,9 @@ def load_dataset():
             b = keys.index(s[1])
             adj_mat[a, 0, b] = 1
             adj_mat[b, 0, a] = 1
+    # adj_mat_in_degree = np.sum(adj_mat, axis = -1)
+    # for i, n in enumerate(adj_mat_in_degree):  # Broadcasting this column array seem to give memory problems
+    #     adj_mat[i,:,:] = adj_mat[i,:,:] / n
     return features, adj_mat, labels
 
 dataset = load_dataset()
@@ -88,8 +91,8 @@ exp.debug = True  # Was True
 
 exp.preprocess_data(dataset)
 
-# train_idx, test_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]
-test_idx, train_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]  # Reversed to get more samples in the test set than the training set
+train_idx, test_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]
+# test_idx, train_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]  # Reversed to get more samples in the test set than the training set
 
 
 exp.create_data(train_idx, test_idx)

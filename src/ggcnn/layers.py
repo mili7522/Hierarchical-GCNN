@@ -21,8 +21,10 @@ def make_variable_with_weight_decay(name, shape, stddev=0.01, wd=0.0005, initial
             return tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
     if initializerType == "normal":
         var = make_variable(name, shape, initializer=tf.truncated_normal_initializer(stddev=stddev), regularizer=regularizer)
-    else:
+    elif initializerType == "uniform":
         var = make_variable(name, shape, initializer=tf.random_uniform_initializer(0, maxval=stddev), regularizer=regularizer)
+    elif initializerType == "identity":
+        var = make_variable(name, shape, initializer=tf.initializers.identity(), regularizer=regularizer)
     return var
     
 def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, name=None):
@@ -70,43 +72,21 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
 
 def update_adjacency_weighting(V, A):
     with tf.variable_scope('AdjacencyAdjustment') as scope:
-        # M = tf.abs(M)
-        no_features = V.get_shape()[1].value
-        # M = make_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.01))
-        # M = tf.get_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.001), regularizer=None, dtype=tf.float32, trainable=True)
-        
-        M = make_variable_with_weight_decay('M', [no_features, no_features], stddev = 0.001, initializerType = 'uniform')
 
-        # M = tf.get_variable('M', initializer=tf.zeros([no_features, no_features]), regularizer=None, dtype=tf.float32, trainable=False)
-        # M = tf.abs(M)
+        no_features = V.get_shape()[1].value
+
+        W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.005, initializerType = 'uniform')
+        M = tf.matmul(W, tf.transpose(W))
+
 
         d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
-        # d1 = tf.Print(d1, ["---d1---", tf.shape(d1), d1, tf.reduce_mean(d1), tf.shape(tf.transpose(d1)), tf.shape(d1 + tf.transpose(d1))])
-        # d1 = tf.Print(d1, ["---", tf.shape(V)])
         d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V)))
-        # d2 = tf.Print(d2, ["---d2---", tf.shape(d2), d2, tf.reduce_mean(d2)])
         D = tf.nn.relu( d1 + tf.transpose(d1) - tf.scalar_mul(2, d2)) + 1E-7  # Set negative values to small epsilon (sqrt gradient undefined at 0)
-        # D = d1 + tf.transpose(d1) - tf.scalar_mul(2, d2)
-        # D = tf.cast(D > 0, D.dtype) * D
-        # D = tf.where(D > 0, tf.sqrt(D), tf.zeros_like(D))
-        # D = tf.nn.relu(D)
         D = tf.sqrt(D)
-        # D = tf.matrix_set_diag(D, tf.zeros(D.get_shape()[0].value))
-        # D = tf.Print(D, ["---D---", tf.shape(D), D, tf.reduce_mean(D), tf.reduce_sum(tf.cast(tf.is_nan(D), tf.int64))])
+
         G = tf.exp(tf.negative(D))
-        # G = tf.Print(G, ["---G---", tf.shape(G),tf.reduce_mean(G), tf.reduce_mean(A)])
-        # G = tf.multiply( tf.divide(G, tf.reduce_sum(G, axis = 1)) , tf.reduce_sum(A, axis = 1))
         result = tf.multiply(A, tf.expand_dims(G,1))
-
         result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(A))
-
-        # result = tf.Print(result, ["---result---", tf.shape(result), result, tf.reduce_sum(result)])
-        # ###
-
-        # M = tf.matmul(tf.matmul(V, M), tf.transpose(V))
-        # result = tf.multiply(A,tf.expand_dims(M,1))
-        # result = A + d1
-        # result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(A))
 
         return result, M
 
@@ -120,11 +100,6 @@ def make_graphcnn_layer(V, A, no_filters, name = None):
         W = make_variable_with_weight_decay('weights', [no_features*no_A, no_filters], stddev=math.sqrt(1.0/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
         W_I = make_variable_with_weight_decay('weights_I', [no_features, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
         b = make_bias_variable('bias', [no_filters])
-
-        # if M is not None:
-        # M = make_variable_with_weight_decay('M', [no_features, no_features], stddev=math.sqrt(1.0/(no_features**2)), initializerType="uniform")
-        # M = make_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.001))
-        # A = update_adjacency_weighting(V, A, M)
 
         A_shape = tf.shape(A)
         A_reshape = tf.reshape(A, tf.stack([A_shape[0]*no_A, A_shape[0]]))
