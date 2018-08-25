@@ -46,6 +46,10 @@ class GGCNNExperiment():
         self.graph_vertices = dataset[0].astype(np.float32)
         self.graph_adjacency = dataset[1].astype(np.float32)
         self.graph_labels = dataset[2].astype(np.int64)
+        if len(dataset) == 4:
+            self.graph_M_features = dataset[3].astype(np.float32)
+        else:
+            self.graph_M_features = dataset[0].astype(np.float32)
         
         self.no_samples = self.graph_labels.shape[0]  # Decreased from 1
         
@@ -63,19 +67,20 @@ class GGCNNExperiment():
                 vertices = self.graph_vertices
                 adjacency = self.graph_adjacency
                 labels = self.graph_labels
+                M_features = self.graph_M_features
 
                 # train_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
                 # train_input_mask[:, self.train_idx, :] = 1
                 train_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
                 train_input_mask[self.train_idx, :] = 1
 
-                self.train_input = [vertices, adjacency, labels, train_input_mask]
+                self.train_input = [vertices, adjacency, labels, train_input_mask, M_features]
                 
                 # test_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
                 # test_input_mask[:, self.test_idx, :] = 1
                 test_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
                 test_input_mask[self.test_idx, :] = 1
-                self.test_input = [vertices, adjacency, labels, test_input_mask]
+                self.test_input = [vertices, adjacency, labels, test_input_mask, M_features]
                 
                 
 
@@ -135,7 +140,7 @@ class GGCNNExperiment():
 
         self.print_ext('Creating training network')
         self.net.is_training = tf.placeholder(tf.bool, shape=(), name = 'is_training')
-        self.net.global_step = tf.Variable(0, name='global_step', trainable=False)
+        self.net.global_step = tf.Variable(0, name='global_step', trainable=False, dtype = tf.float32)
 
         train_input = self.create_input_variable(self.train_input)
         test_input = self.create_input_variable(self.test_input)
@@ -225,8 +230,12 @@ class GGCNNExperiment():
                 coord.join(threads)
                 self.print_ext('Cleanup completed!')
                 # writer.close()
+
+                current_A = sess.run(net.current_A)
+                print(current_A)
+
                 if wasKeyboardInterrupt:
                     raise raisedEx
                 
                 
-                return sess.run([self.max_acc_test, self.net.global_step, self.y_pred_cls], feed_dict={self.net.is_training:0})
+                return sess.run([self.max_acc_test, self.net.global_step, self.y_pred_cls], feed_dict={self.net.is_training:0}), current_A

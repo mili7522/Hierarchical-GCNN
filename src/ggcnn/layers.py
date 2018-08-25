@@ -70,12 +70,12 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
 #         prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
 #         return prob
 
-def update_adjacency_weighting(V, A):
+def update_adjacency_weighting(V, A, global_step):
     with tf.variable_scope('AdjacencyAdjustment') as scope:
 
         no_features = V.get_shape()[1].value
 
-        W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.005, initializerType = 'uniform')
+        W = make_variable_with_weight_decay('M_W', [no_features, no_features], stddev = 0.001, wd=0.005, initializerType = 'uniform')
         M = tf.matmul(W, tf.transpose(W))
 
 
@@ -85,6 +85,7 @@ def update_adjacency_weighting(V, A):
         D = tf.sqrt(D)
 
         G = tf.exp(tf.negative(D))
+        # A_comb = (1/(global_step+1)) * A + (1 - 1/(global_step+1)) * tf.ones_like(A)
         result = tf.multiply(A, tf.expand_dims(G,1))
         result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(A))
 
