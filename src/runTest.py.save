@@ -5,26 +5,25 @@ import sys
 import pandas as pd
 
 from sklearn.model_selection import KFold
-from sklearn.decomposition import PCA
 
+dataFolder = '../../../Graph-CNN/Graph-CNN/src/'
 
 def load_dataset():
     keys = []
     features = []
     labels = []
-
-    with open('Data/2018-08-24-NSW-SA1Input-Normalised.csv', 'r') as file:
+    with open(dataFolder + 'Data/2018-06-03-SYD-SA1Input-Normalised.csv', 'r') as file:
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
                 continue
             s = line[:-1].split(',')  # Last value in line is \n
             keys.append(s[0])
             features.extend([float(v) for v in s[1:-1]])  # Last column is the outcome y
-            labels.append(np.floor(float(s[-1]) / 10).astype(int))
+            labels.append(int(s[-1]))
         labels = np.array(labels)
         features = np.array(features).reshape((len(keys), -1))
     
-    with open('Data/Geography/2018-08-24-NSW-Neighbouring_Suburbs_With_Bridges-GCC.csv', 'r') as file:
+    with open(dataFolder + 'Data/2018-06-03-SYD-NeighbourLinkFeatures.csv', 'r') as file:
         adj_mat = np.zeros((len(labels), 1, len(labels)))
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
@@ -34,16 +33,11 @@ def load_dataset():
             b = keys.index(s[1])
             adj_mat[a, 0, b] = 1
             adj_mat[b, 0, a] = 1
-
-    pca = PCA(n_components=0.9, svd_solver='full')
-    reduced_features = pca.fit_transform(features)
-    print(pca.explained_variance_ratio_)
-
-    return features, adj_mat, labels, reduced_features
+    # adj_mat_in_degree = np.sum(adj_mat, axis = -1)
+    # for i, n in enumerate(adj_mat_in_degree):  # Broadcasting this column array seem to give memory problems    #     adj_mat[i,:,:] = adj_mat[i,:,:] / n
+    return features, adj_mat, labels
 
 dataset = load_dataset()
-
-print(dataset[-1].shape)
 
 class SA1Experiment():
     def __init__(self, neurons, blocks):
@@ -68,12 +62,26 @@ class SA1Experiment():
 no_folds = 5
 inst = KFold(n_splits = no_folds, shuffle=True, random_state=125)
 
-l = 2
-n = 128
-i = 0
+try:
+    l = int(sys.argv[1])
+    n = int(sys.argv[2])
+    i = int(sys.argv[3])
+except IndexError:
+    l = 2
+    n = 128
+    i = 0
+    
+saveName = 'Output/SemiSupervisedSydney-NoEdge-l={:d}-n={:d}-i={:d}.csv'.format(l,n,i)
+
+max_acc = []
+iteration = []
+layers = []
+neurons = []
+rep = []
 
     
-exp = experiment.GGCNNExperiment('2018-08-24-SA1', '2018-08-24-sa1', SA1Experiment(neurons = n, blocks = l))
+exp = experiment.GGCNNExperiment('2018-06-06-SA1', '2018-06-06-sa1', SA1Experiment(neurons = n, blocks = l))
+# exp = experiment.SingleGraphCNNExperiment('2018-06-06-SA1', '2018-06-06-sa1', SA1Experiment(neurons = n, blocks = l))
 
 exp.num_iterations = 1000
 exp.optimizer = 'adam'
@@ -89,3 +97,6 @@ train_idx, test_idx = list(inst.split(np.arange(len(dataset[-1]))))[i]
 exp.create_data(train_idx, test_idx)
 exp.build_network()
 results = exp.run()
+
+# exp.build_network()
+# results = exp.run()

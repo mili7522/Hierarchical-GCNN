@@ -9,6 +9,7 @@ class GraphCNNNetwork(object):
         self.network_debug = False
         self.M = None
         self.M_features = None
+        self.distance_mat = None
         
     def create_network(self, input):
         self.current_V = input[0]
@@ -16,6 +17,7 @@ class GraphCNNNetwork(object):
         self.labels = input[2]
         self.current_mask = input[3]
         self.M_features = input[4]
+        self.distance_mat = input[5]
         
         if self.network_debug:
             size = tf.reduce_sum(self.current_mask, axis=1)
@@ -56,5 +58,5 @@ class GraphCNNNetwork(object):
 
     def make_adjacency_adjustment_layer(self, name = None):
         with tf.variable_scope(name, default_name='AdjacencyAdjustment') as scope: 
-            self.current_A, self.M = update_adjacency_weighting(self.M_features, self.current_A, self.global_step)
+            self.current_A, self.M, self.dist_beta = update_adjacency_weighting(self.M_features, self.current_A, self.global_step, self.distance_mat)
         # self.M = make_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.001))

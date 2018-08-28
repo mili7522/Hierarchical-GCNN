@@ -70,12 +70,12 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
 #         prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
 #         return prob
 
-def update_adjacency_weighting(V, A, global_step):
+def update_adjacency_weighting(V, A, global_step, distance_mat):
     with tf.variable_scope('AdjacencyAdjustment') as scope:
 
         no_features = V.get_shape()[1].value
 
-        W = make_variable_with_weight_decay('M_W', [no_features, no_features], stddev = 0.001, wd=0.005, initializerType = 'uniform')
+        W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
         M = tf.matmul(W, tf.transpose(W))
 
 
@@ -83,13 +83,19 @@ def update_adjacency_weighting(V, A, global_step):
         d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V)))
         D = tf.nn.relu( d1 + tf.transpose(d1) - tf.scalar_mul(2, d2)) + 1E-7  # Set negative values to small epsilon (sqrt gradient undefined at 0)
         D = tf.sqrt(D)
+        
+        dist_beta = make_variable_with_weight_decay('dist_beta', [1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
+        D = D + dist_beta * distance_mat
 
-        G = tf.exp(tf.negative(D))
-        # A_comb = (1/(global_step+1)) * A + (1 - 1/(global_step+1)) * tf.ones_like(A)
+        G = tf.exp(tf.negative(D) / 10)
+        
+#         gs = tf.floor(global_step / 20)
+#         decay = tf.maximum(tf.pow(0.99, gs), 0.5)
+#         A_comb = decay * A + (1 - decay) * tf.ones_like(A)
         result = tf.multiply(A, tf.expand_dims(G,1))
         result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(A))
 
-        return result, M
+        return result, M, dist_beta
 
 def make_graphcnn_layer(V, A, no_filters, name = None):
     with tf.variable_scope(name, default_name='Graph-CNN') as scope:

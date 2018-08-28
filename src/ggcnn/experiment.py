@@ -46,10 +46,14 @@ class GGCNNExperiment():
         self.graph_vertices = dataset[0].astype(np.float32)
         self.graph_adjacency = dataset[1].astype(np.float32)
         self.graph_labels = dataset[2].astype(np.int64)
-        if len(dataset) == 4:
+        if len(dataset) > 3:
             self.graph_M_features = dataset[3].astype(np.float32)
         else:
             self.graph_M_features = dataset[0].astype(np.float32)
+        if len(dataset) > 4:
+            self.graph_distance_mat = dataset[4].astype(np.float32)
+        else:
+            self.graph_distance_mat = np.ones_like(self.graph_adjacency[0])
         
         self.no_samples = self.graph_labels.shape[0]  # Decreased from 1
         
@@ -68,19 +72,20 @@ class GGCNNExperiment():
                 adjacency = self.graph_adjacency
                 labels = self.graph_labels
                 M_features = self.graph_M_features
+                distance_mat = self.graph_distance_mat
 
                 # train_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
                 # train_input_mask[:, self.train_idx, :] = 1
                 train_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
                 train_input_mask[self.train_idx, :] = 1
 
-                self.train_input = [vertices, adjacency, labels, train_input_mask, M_features]
+                self.train_input = [vertices, adjacency, labels, train_input_mask, M_features, distance_mat]
                 
                 # test_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
                 # test_input_mask[:, self.test_idx, :] = 1
                 test_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
                 test_input_mask[self.test_idx, :] = 1
-                self.test_input = [vertices, adjacency, labels, test_input_mask, M_features]
+                self.test_input = [vertices, adjacency, labels, test_input_mask, M_features, distance_mat]
                 
                 
 
@@ -93,34 +98,50 @@ class GGCNNExperiment():
             # self.net.current_V = tf.stop_gradient(tf.abs(self.net.current_mask-1) * self.net.current_V) + self.net.current_mask * self.net.current_V
 
             inv_sum = (1./tf.reduce_sum(self.net.current_mask))
-            cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.net.current_V, labels=self.net.labels)
-            cross_entropy = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(cross_entropy))
-            cross_entropy = tf.reduce_sum(cross_entropy)*inv_sum
+            
+            if self.loss_type == "cross_entropy":
+                cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.net.current_V, labels=self.net.labels)
+                cross_entropy = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(cross_entropy))
+                cross_entropy = tf.reduce_sum(cross_entropy)*inv_sum
 
-            # cross_entropy = tf.Print(cross_entropy, [tf.gradients(cross_entropy, self.net.M)[0]])
 
-            correct_prediction = tf.cast(tf.equal(tf.argmax(self.net.current_V, 1), self.net.labels), tf.float32)
-            correct_prediction = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(correct_prediction))
-            accuracy = tf.reduce_sum(correct_prediction)*inv_sum
+                correct_prediction = tf.cast(tf.equal(tf.argmax(self.net.current_V, 1), self.net.labels), tf.float32)
+                correct_prediction = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(correct_prediction))
+                accuracy = tf.reduce_sum(correct_prediction)*inv_sum
+                
+                tf.add_to_collection('losses', cross_entropy)
+                tf.summary.scalar('loss', cross_entropy)
             
-            tf.add_to_collection('losses', cross_entropy)
-            tf.summary.scalar('loss', cross_entropy)
+                self.max_acc_train = tf.Variable(tf.zeros([]), name = "max_acc_train")
+                self.max_acc_test = tf.Variable(tf.zeros([]), name = "max_acc_test")
             
-            self.max_acc_train = tf.Variable(tf.zeros([]), name="max_acc_train")
-            self.max_acc_test = tf.Variable(tf.zeros([]), name="max_acc_test")
-            
-            max_acc = tf.cond(self.net.is_training, lambda: tf.assign(self.max_acc_train, tf.maximum(self.max_acc_train, accuracy)), lambda: tf.assign(self.max_acc_test, tf.maximum(self.max_acc_test, accuracy)))
-            
-            tf.summary.scalar('max_accuracy', max_acc)
-            tf.summary.scalar('accuracy', accuracy)
-            
-            self.reports['accuracy'] = accuracy
-            self.reports['max acc.'] = max_acc
-            self.reports['cross_entropy'] = cross_entropy
+                max_acc = tf.cond(self.net.is_training, lambda: tf.assign(self.max_acc_train, tf.maximum(self.max_acc_train, accuracy)), lambda: tf.assign(self.max_acc_test, tf.maximum(self.max_acc_test, accuracy)))
+                
+                tf.summary.scalar('max_accuracy', max_acc)
+                tf.summary.scalar('accuracy', accuracy)
+
+                self.reports['accuracy'] = accuracy
+                self.reports['max acc.'] = max_acc
+                self.reports['cross_entropy'] = cross_entropy
+
+            else:
+                linear_loss = tf.losses.mean_squared_error(labels = tf.squeeze(self.net.labels), predictions = tf.squeeze(self.net.current_V), weights = tf.squeeze(self.net.current_mask))
+
+                tf.add_to_collection('losses', linear_loss)
+                tf.summary.scalar('loss', linear_loss)
+                
+                self.min_loss_train = tf.Variable(tf.fill([], np.inf), name = "min_loss_train")
+                self.min_loss_test = tf.Variable(tf.fill([], np.inf), name = "min_loss_test")
+
+                min_loss = tf.cond(self.net.is_training, lambda: tf.assign(self.min_loss_train, tf.minimum(self.min_loss_train, linear_loss)), lambda: tf.assign(self.min_loss_test, tf.minimum(self.min_loss_test, linear_loss)))
+
+                tf.summary.scalar('min_loss', min_loss)
+                self.reports['min loss'] = min_loss
+                self.reports['loss'] = linear_loss
             
             #### Added to compute prediction
 #            y_pred = tf.nn.softmax(self.net.current_V)
-            self.y_pred_cls = tf.argmax(self.net.current_V, 1)
+#             self.y_pred_cls = tf.argmax(self.net.current_V, 1)
             ####
 
     def create_input_variable(self, input):
@@ -231,11 +252,13 @@ class GGCNNExperiment():
                 self.print_ext('Cleanup completed!')
                 # writer.close()
 
-                current_A = sess.run(net.current_A)
+                current_A, dist_beta = sess.run([self.net.current_A, self.net.dist_beta], feed_dict={self.net.is_training:0})
                 print(current_A)
+                print(dist_beta)
 
                 if wasKeyboardInterrupt:
                     raise raisedEx
                 
                 
-                return sess.run([self.max_acc_test, self.net.global_step, self.y_pred_cls], feed_dict={self.net.is_training:0}), current_A
+#                 return sess.run([self.max_acc_test, self.net.global_step], feed_dict={self.net.is_training:0}), current_A
+                return current_A
