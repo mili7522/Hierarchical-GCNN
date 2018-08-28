@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 SA1DatasetSize = 0
-dataFolder = '../../../Graph-CNN/Graph-CNN/src/'
+dataFolder = ''
 
 def load_sa1_dataset():
     global SA1DatasetSize
@@ -13,31 +13,31 @@ def load_sa1_dataset():
     features = []
     labels = []
     # Load SA1 Node Features
-    with open(dataFolder + 'Data/2018-06-03-SYD-SA1Input-Normalised.csv', 'r') as file:
+    with open(dataFolder + 'Data/2018-08-24-NSW-SA1Input-Normalised.csv', 'r') as file:
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
                 continue
             s = line[:-1].split(',')  # Last value in line is \n
             keys.append(s[0])
             features.extend([float(v) for v in s[1:-1]])  # Last column is the outcome y
-            labels.append(int(s[-1]))
+            labels.append(float(s[-1]))
     
     SA1DatasetSize = len(labels)
     
     # Load SA2 Node Features
-    with open(dataFolder + 'Data/SA2/2018-05-31-SA2Input-Normalised2.csv', 'r') as file:
+    with open(dataFolder + 'Data/2018-08-28-NSW-SA2Input-Normalised.csv', 'r') as file:
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
                 continue
             s = line[:-1].split(',')  # Last value in line is \n
             keys.append(s[0])
             features.extend([float(v) for v in s[1:-1]])  # Last column is the outcome y
-            labels.append(int(s[-1]))
+            labels.append(float(s[-1]))
         labels = np.array(labels)
         features = np.array(features).reshape((len(keys), -1))
     
     # Load SA1 Link Features
-    with open(dataFolder + 'Data/2018-06-03-SYD-NeighbourLinkFeatures.csv', 'r') as file:
+    with open(dataFolder + 'Data/2018-08-25-NSW-NeighbourDistance.csv', 'r') as file:
         adj_mat = np.zeros((len(labels), 4, len(labels)))
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
@@ -49,7 +49,7 @@ def load_sa1_dataset():
             adj_mat[b, 0, a] = 1
 
     # Load SA2 Link Features
-    with open(dataFolder + 'Data/SA2/2018-05-31-SYD-SA2-Neighbouring_Suburbs_With_Bridges-GCC.csv', 'r') as file:
+    with open(dataFolder + 'Data/2018-08-28-NSW-SA2_Neighbouring_Suburbs_With_Bridges-GCC.csv', 'r') as file:
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
                 continue
@@ -60,7 +60,7 @@ def load_sa1_dataset():
             adj_mat[b, 1, a] = 1
     
     # Load SA1, SA2 Links
-    with open(dataFolder + 'Data/SA2/SA1SA2Links.csv', 'r') as file:
+    with open(dataFolder + 'Data/SA1SA2Links.csv', 'r') as file:
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
                 continue
@@ -81,7 +81,7 @@ class SA1Experiment():
     
     def create_network(self, net, input):
         net.create_network(input)
-        net.make_adjacency_adjustment_layer()
+#        net.make_adjacency_adjustment_layer()
         net.make_embedding_layer(self.neurons)
         net.make_dropout_layer()
         
@@ -94,31 +94,18 @@ class SA1Experiment():
         net.make_graphcnn_layer(10, name='final', with_bn=False, with_act_func = False)
 
 
-no_folds = 10 ##
+no_folds = 5 ##
 inst = KFold(n_splits = no_folds, shuffle=True, random_state=125)
 
-try:
-    l = int(sys.argv[1])
-    n = int(sys.argv[2])
-    i = int(sys.argv[3])
-except IndexError:
-    l = 2
-    n = 128
-    i = 0
 
-saveName = 'Output/SA1SA2-5FoldSYD-EdgeOnly-l={:d}-n={:d}-i={:d}.csv'.format(l,n,i)
+l = 2
+n = 128
+i = 0
 
-max_acc = []
-iteration = []
-layers = []
-neurons = []
-rep = []
 
-    
+exp = experiment.GGCNNExperiment('2018-08-28-SA1SA2', '2018-08-28-SA1SA2', SA1Experiment(neurons = n, blocks = l))
 
-exp = experiment.GGCNNExperiment('2018-10-08-SA1SA2', '2018-10-08-sa1sa2', SA1Experiment(neurons = n, blocks = l))
-
-exp.num_iterations = 500
+exp.num_iterations = 1000
 exp.optimizer = 'adam'
 
 exp.debug = True  # Was True
