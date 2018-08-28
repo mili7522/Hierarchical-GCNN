@@ -37,27 +37,20 @@ class GGCNNExperiment():
 
 
     def preprocess_data(self, dataset):
-        self.largest_graph = dataset[0].shape[0]
-        self.graph_size = [self.largest_graph]
-        
-        # self.graph_vertices = np.expand_dims(dataset[0].astype(np.float32), axis=0)
-        # self.graph_adjacency = np.expand_dims(dataset[1].astype(np.float32), axis=0)
-        # self.graph_labels = np.expand_dims(dataset[2].astype(np.int64), axis=0)
+        self.graph_size = dataset[0].shape[0]
+        self.auxilary_graph_size = dataset[3].shape[0]
+
         self.graph_vertices = dataset[0].astype(np.float32)
         self.graph_adjacency = dataset[1].astype(np.float32)
-        self.graph_labels = dataset[2].astype(np.int64)
-        if len(dataset) > 3:
-            self.graph_M_features = dataset[3].astype(np.float32)
-        else:
-            self.graph_M_features = dataset[0].astype(np.float32)
-        if len(dataset) > 4:
-            self.graph_distance_mat = dataset[4].astype(np.float32)
-        else:
-            self.graph_distance_mat = np.ones_like(self.graph_adjacency[0])
-        
-        self.no_samples = self.graph_labels.shape[0]  # Decreased from 1
-        
-        # single_sample = [self.graph_vertices, self.graph_adjacency, self.graph_labels, self.graph_size]
+        if self.loss_type == "cross_entropy":
+            self.graph_labels = dataset[2].astype(np.int64)
+        elif self.loss_type == "linear":
+            self.graph_labels = dataset[2].astype(np.float32)
+        self.auxilary_vertices = dataset[3].astype(np.float32)
+        self.auxilary_adjacency = dataset[4].astype(np.float32)
+        self.auxilary_linkage = dataset[5].astype(np.float32)
+
+
 
     
     def create_data(self, train_idx, test_idx):
@@ -67,25 +60,23 @@ class GGCNNExperiment():
             with tf.variable_scope('input') as scope:
                 self.print_ext('Creating training Tensorflow Tensors')
                 
-                
                 vertices = self.graph_vertices
                 adjacency = self.graph_adjacency
                 labels = self.graph_labels
-                M_features = self.graph_M_features
-                distance_mat = self.graph_distance_mat
+                auxilary_vertices = self.auxilary_vertices
+                auxilary_adjacency = self.auxilary_adjacency
+                auxilary_linkage = self.auxilary_linkage
 
-                # train_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
-                # train_input_mask[:, self.train_idx, :] = 1
-                train_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
+
+                train_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
                 train_input_mask[self.train_idx, :] = 1
-
-                self.train_input = [vertices, adjacency, labels, train_input_mask, M_features, distance_mat]
+                train_input_mask_auxilary = np.ones([self.auxilary_graph_size, 1]).astype(np.float32)
+                self.train_input = [vertices, adjacency, labels, train_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_linkage, train_input_mask_auxilary]
                 
-                # test_input_mask = np.zeros([1, self.largest_graph, 1]).astype(np.float32)
-                # test_input_mask[:, self.test_idx, :] = 1
-                test_input_mask = np.zeros([self.largest_graph, 1]).astype(np.float32)
+                test_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
                 test_input_mask[self.test_idx, :] = 1
-                self.test_input = [vertices, adjacency, labels, test_input_mask, M_features, distance_mat]
+                test_input_mask_auxilary = np.zeros([self.auxilary_graph_size, 1]).astype(np.float32)
+                self.test_input = [vertices, adjacency, labels, test_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_linkage, test_input_mask_auxilary]
                 
                 
 

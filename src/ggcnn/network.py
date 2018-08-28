@@ -7,17 +7,19 @@ class GraphCNNNetwork(object):
         self.current_mask = None
         self.labels = None
         self.network_debug = False
-        self.M = None
-        self.M_features = None
-        self.distance_mat = None
+        self.current_V_auxilary = None
+        self.current_A_auxilary = None
+        self.current_linkage = None
         
     def create_network(self, input):
         self.current_V = input[0]
         self.current_A = input[1]
         self.labels = input[2]
         self.current_mask = input[3]
-        self.M_features = input[4]
-        self.distance_mat = input[5]
+        self.current_V_auxilary = input[4]
+        self.current_A_auxilary = input[5]
+        self.current_linkage = input[6]
+        self.current_mask_auxilary = input[7]
         
         if self.network_debug:
             size = tf.reduce_sum(self.current_mask, axis=1)
@@ -29,6 +31,10 @@ class GraphCNNNetwork(object):
     def make_batchnorm_layer(self):
         self.current_V = make_bn(self.current_V, self.is_training, mask=self.current_mask, num_updates = self.global_step)
         return self.current_V
+    
+    def make_auxilary_batchnorm_layer(self):
+        self.current_V_auxilary = make_bn(self.current_V_auxilary, self.is_training, mask=self.current_mask_auxilary, num_updates = self.global_step)
+        return self.current_V_auxilary
         
     # Equivalent to 0-hop filter
     def make_embedding_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
@@ -43,6 +49,10 @@ class GraphCNNNetwork(object):
     def make_dropout_layer(self, keep_prob=0.5):
         self.current_V = tf.cond(self.is_training, lambda:tf.nn.dropout(self.current_V, keep_prob=keep_prob), lambda:(self.current_V))
         return self.current_V
+    
+    def make_auxilary_dropout_layer(self, keep_prob=0.5):
+        self.current_V_auxilary = tf.cond(self.is_training, lambda:tf.nn.dropout(self.current_V_auxilary, keep_prob=keep_prob), lambda:(self.current_V_auxilary))
+        return self.current_V_auxilary
         
     def make_graphcnn_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
         with tf.variable_scope(name, default_name='Graph-CNN') as scope:
@@ -56,7 +66,31 @@ class GraphCNNNetwork(object):
                 self.current_V = tf.Print(self.current_V, [tf.shape(self.current_V), batch_mean, batch_var], message='"%s" V Shape, Mean, Var:' % scope.name)
         return self.current_V
 
-    def make_adjacency_adjustment_layer(self, name = None):
-        with tf.variable_scope(name, default_name='AdjacencyAdjustment') as scope: 
-            self.current_A, self.M, self.dist_beta = update_adjacency_weighting(self.M_features, self.current_A, self.global_step, self.distance_mat)
-        # self.M = make_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.001))
+    # def make_adjacency_adjustment_layer(self, name = None):
+    #     with tf.variable_scope(name, default_name='AdjacencyAdjustment') as scope: 
+    #         self.current_A, self.M, self.dist_beta = update_adjacency_weighting(self.M_features, self.current_A, self.global_step, self.distance_mat)
+    #     # self.M = make_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.001))
+
+
+    def make_auxilary_graphcnn_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
+        with tf.variable_scope(name, default_name='Auxilary-Graph-CNN') as scope:
+            self.current_V_auxilary = make_graphcnn_layer(self.current_V_auxilary, self.current_A_auxilary, no_filters)
+            if with_bn:
+                self.make_auxilary_batchnorm_layer()
+            if with_act_func:
+                self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
+            if self.network_debug:
+                batch_mean, batch_var = tf.nn.moments(self.current_V_auxilary, np.arange(len(self.current_V_auxilary.get_shape())-1))
+                self.current_V_auxilary = tf.Print(self.current_V_auxilary, [tf.shape(self.current_V_auxilary), batch_mean, batch_var], message='"%s" V Shape, Mean, Var:' % scope.name)
+        return self.current_V_auxilary
+
+
+    def make_auxilary_linkage_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
+        with tf.variable_scope(name, default_name='Auxilary-Linkage-Graph-CNN') as scope:
+            self.current_V = make_linkage_layer(self.current_V, self.current_V_auxilary, self.current_linkage, no_filters)
+
+            # if with_bn:
+            #     self.make_batchnorm_layer()
+            if with_act_func:
+                self.current_V = tf.nn.relu(self.current_V)
+        return self.current_V

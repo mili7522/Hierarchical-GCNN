@@ -70,39 +70,40 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
 #         prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
 #         return prob
 
-def update_adjacency_weighting(V, A, global_step, distance_mat):
-    with tf.variable_scope('AdjacencyAdjustment') as scope:
+# def update_adjacency_weighting(V, A, global_step, distance_mat):
+#     with tf.variable_scope('AdjacencyAdjustment') as scope:
 
-        no_features = V.get_shape()[1].value
+#         no_features = V.get_shape()[1].value
 
-        W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
-        M = tf.matmul(W, tf.transpose(W))
+#         W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
+#         M = tf.matmul(W, tf.transpose(W))
 
 
-        d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
-        d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V)))
-        D = tf.nn.relu( d1 + tf.transpose(d1) - tf.scalar_mul(2, d2)) + 1E-7  # Set negative values to small epsilon (sqrt gradient undefined at 0)
-        D = tf.sqrt(D)
+#         d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
+#         d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V)))
+#         D = tf.nn.relu( d1 + tf.transpose(d1) - tf.scalar_mul(2, d2)) + 1E-7  # Set negative values to small epsilon (sqrt gradient undefined at 0)
+#         D = tf.sqrt(D)
         
-        dist_beta = make_variable_with_weight_decay('dist_beta', [1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
-        D = D + dist_beta * distance_mat
+#         dist_beta = make_variable_with_weight_decay('dist_beta', [1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
+#         D = D + dist_beta * distance_mat
 
-        G = tf.exp(tf.negative(D) / 10)
+#         G = tf.exp(tf.negative(D) / 10)
         
-#         gs = tf.floor(global_step / 20)
-#         decay = tf.maximum(tf.pow(0.99, gs), 0.5)
-#         A_comb = decay * A + (1 - decay) * tf.ones_like(A)
-        result = tf.multiply(A, tf.expand_dims(G,1))
-        result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(A))
+# #         gs = tf.floor(global_step / 20)
+# #         decay = tf.maximum(tf.pow(0.99, gs), 0.5)
+# #         A_comb = decay * A + (1 - decay) * tf.ones_like(A)
+#         result = tf.multiply(A, tf.expand_dims(G,1))
+#         result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(A))
 
-        return result, M, dist_beta
+#         return result, M, dist_beta
 
 def make_graphcnn_layer(V, A, no_filters, name = None):
     with tf.variable_scope(name, default_name='Graph-CNN') as scope:
         # A.shape = (N, 1, N)
         # V.shape = (N, C)
         # Shape indices decreased by 1 compared to default Graph-CNN
-        no_A = A.get_shape()[1].value
+        # no_A = A.get_shape()[1].value
+        no_A = 1
         no_features = V.get_shape()[1].value
         W = make_variable_with_weight_decay('weights', [no_features*no_A, no_filters], stddev=math.sqrt(1.0/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
         W_I = make_variable_with_weight_decay('weights_I', [no_features, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
@@ -127,4 +128,22 @@ def make_embedding_layer(V, no_filters, name=None):
         # s = tf.concat([s, tf.stack([no_filters])], 0)
         # result = tf.reshape(tf.matmul(V_reshape, W) + b, s)
         result = tf.matmul(V, W) + b
+        return result
+
+def make_linkage_layer(V, V_aux, A_linkage, no_filters, name = None):
+    with tf.variable_scope(name, default_name='Graph-CNN') as scope:
+        # A_linkage.shape = (N, N_aux)
+        # V.shape = (N, C)
+        # V_aux.shape = (N_aux, C')
+
+        # no_features = V.get_shape()[1].value
+        no_features_aux = V_aux.get_shape()[1].value
+        W = make_variable_with_weight_decay('weights', [no_features_aux, no_filters], stddev=math.sqrt(1.0/(no_features_aux*(2)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
+        # W_I = make_variable_with_weight_decay('weights_I', [no_features, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
+        # b = make_bias_variable('bias', [no_filters])
+        
+        n = tf.matmul(A_linkage, V_aux)
+
+        # result = tf.matmul(n, W) + tf.matmul(V, W_I) + b
+        result = tf.matmul(n, W) + V
         return result
