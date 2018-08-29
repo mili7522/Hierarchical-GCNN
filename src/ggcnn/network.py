@@ -18,8 +18,9 @@ class GraphCNNNetwork(object):
         self.current_mask = input[3]
         self.current_V_auxilary = input[4]
         self.current_A_auxilary = input[5]
-        self.current_linkage = input[6]
-        self.current_mask_auxilary = input[7]
+        self.current_forward_linkage = input[6]
+        self.current_reverse_linkage = input[7]
+        self.current_mask_auxilary = input[8]
         
         if self.network_debug:
             size = tf.reduce_sum(self.current_mask, axis=1)
@@ -45,6 +46,15 @@ class GraphCNNNetwork(object):
             if with_act_func:
                 self.current_V = tf.nn.relu(self.current_V)
         return self.current_V, self.current_A, self.current_mask
+    
+    def make_auxilary_embedding_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
+        with tf.variable_scope(name, default_name='Auxilary_Embed') as scope:
+            self.current_V_auxilary = make_embedding_layer(self.current_V_auxilary, no_filters)
+            if with_bn:
+                self.make_auxilary_batchnorm_layer()
+            if with_act_func:
+                self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
+        return self.current_V_auxilary, self.current_A_auxilary, self.current_mask
         
     def make_dropout_layer(self, keep_prob=0.5):
         self.current_V = tf.cond(self.is_training, lambda:tf.nn.dropout(self.current_V, keep_prob=keep_prob), lambda:(self.current_V))
@@ -87,10 +97,25 @@ class GraphCNNNetwork(object):
 
     def make_auxilary_linkage_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
         with tf.variable_scope(name, default_name='Auxilary-Linkage-Graph-CNN') as scope:
-            self.current_V = make_linkage_layer(self.current_V, self.current_V_auxilary, self.current_linkage, no_filters)
+            V_linkage = make_linkage_layer(self.current_V, self.current_V_auxilary, self.current_forward_linkage, no_filters)
+            
+#             V_linkage = tf.cond(self.is_training, lambda:tf.nn.dropout(V_linkage, keep_prob=0.5), lambda:(V_linkage))
+            self.current_V = V_linkage + self.current_V
 
-            # if with_bn:
-            #     self.make_batchnorm_layer()
+            if with_bn:
+                self.make_batchnorm_layer()
             if with_act_func:
                 self.current_V = tf.nn.relu(self.current_V)
         return self.current_V
+    
+    def make_reverse_auxilary_linkage_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
+        with tf.variable_scope(name, default_name='Reverse-Auxilary-Linkage-Graph-CNN') as scope:
+            V_linkage = make_reverse_linkage_layer(self.current_V, self.current_V_auxilary, self.current_reverse_linkage, no_filters)
+#             V_linkage = tf.cond(self.is_training, lambda:tf.nn.dropout(V_linkage, keep_prob=0.5), lambda:(V_linkage))
+            self.current_V_auxilary = V_linkage + self.current_V_auxilary
+            
+            if with_bn:
+                self.make_auxilary_batchnorm_layer()
+            if with_act_func:
+                self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
+        return self.current_V_auxilary

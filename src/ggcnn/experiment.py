@@ -48,9 +48,8 @@ class GGCNNExperiment():
             self.graph_labels = dataset[2].astype(np.float32)
         self.auxilary_vertices = dataset[3].astype(np.float32)
         self.auxilary_adjacency = dataset[4].astype(np.float32)
-        self.auxilary_linkage = dataset[5].astype(np.float32)
-
-
+        self.auxilary_forward_linkage = dataset[5].astype(np.float32)
+        self.auxilary_reverse_linkage = dataset[6].astype(np.float32)
 
     
     def create_data(self, train_idx, test_idx):
@@ -65,18 +64,19 @@ class GGCNNExperiment():
                 labels = self.graph_labels
                 auxilary_vertices = self.auxilary_vertices
                 auxilary_adjacency = self.auxilary_adjacency
-                auxilary_linkage = self.auxilary_linkage
+                auxilary_forward_linkage = self.auxilary_forward_linkage
+                auxilary_reverse_linkage = self.auxilary_reverse_linkage
 
 
                 train_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
                 train_input_mask[self.train_idx, :] = 1
                 train_input_mask_auxilary = np.ones([self.auxilary_graph_size, 1]).astype(np.float32)
-                self.train_input = [vertices, adjacency, labels, train_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_linkage, train_input_mask_auxilary]
+                self.train_input = [vertices, adjacency, labels, train_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, train_input_mask_auxilary]
                 
                 test_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
                 test_input_mask[self.test_idx, :] = 1
                 test_input_mask_auxilary = np.zeros([self.auxilary_graph_size, 1]).astype(np.float32)
-                self.test_input = [vertices, adjacency, labels, test_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_linkage, test_input_mask_auxilary]
+                self.test_input = [vertices, adjacency, labels, test_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, test_input_mask_auxilary]
                 
                 
 
@@ -201,6 +201,8 @@ class GGCNNExperiment():
 
             # writer = tf.summary.FileWriter('./Graphs', tf.get_default_graph())
 
+            all_training_reports = []
+            all_testing_reports = []
             try:
                 total_training = 0.0
                 total_testing = 0.0
@@ -214,9 +216,11 @@ class GGCNNExperiment():
                         self.print_ext('Test Step %d Finished' % i)
                         for key, value in reports.items():
                             self.print_ext('Test Step %d "%s" = ' % (i, key), value)
+                        all_testing_reports.append(reports)
                         
                     start_temp = time.time()
                     summary, _, reports = sess.run([summary_merged, train_step, self.reports], feed_dict={self.net.is_training:1})
+                    all_training_reports.append(reports)
                     total_training += time.time() - start_temp
                     i += 1
                     if ((i-1) % self.display_iter) == 0:
@@ -243,13 +247,14 @@ class GGCNNExperiment():
                 self.print_ext('Cleanup completed!')
                 # writer.close()
 
-                current_A, dist_beta = sess.run([self.net.current_A, self.net.dist_beta], feed_dict={self.net.is_training:0})
-                print(current_A)
-                print(dist_beta)
+#                 current_A, dist_beta = sess.run([self.net.current_A, self.net.dist_beta], feed_dict={self.net.is_training:0})
+#                 print(current_A)
+#                 print(dist_beta)
 
                 if wasKeyboardInterrupt:
                     raise raisedEx
                 
                 
 #                 return sess.run([self.max_acc_test, self.net.global_step], feed_dict={self.net.is_training:0}), current_A
-                return current_A
+#                 return current_A
+                return all_training_reports, all_testing_reports, sess.run(self.net.current_V, feed_dict={self.net.is_training:0})

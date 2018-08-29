@@ -136,14 +136,37 @@ def make_linkage_layer(V, V_aux, A_linkage, no_filters, name = None):
         # V.shape = (N, C)
         # V_aux.shape = (N_aux, C')
 
-        # no_features = V.get_shape()[1].value
+        no_A = 1
+        no_features = V.get_shape()[1].value
         no_features_aux = V_aux.get_shape()[1].value
+        no_filters = no_features
         W = make_variable_with_weight_decay('weights', [no_features_aux, no_filters], stddev=math.sqrt(1.0/(no_features_aux*(2)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
-        # W_I = make_variable_with_weight_decay('weights_I', [no_features, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
-        # b = make_bias_variable('bias', [no_filters])
+#         W_I = make_variable_with_weight_decay('weights_I', [no_features, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
+#         b = make_bias_variable('bias', [no_filters])
         
         n = tf.matmul(A_linkage, V_aux)
 
-        # result = tf.matmul(n, W) + tf.matmul(V, W_I) + b
-        result = tf.matmul(n, W) + V
+#         result = tf.matmul(n, W) + tf.matmul(V, W_I) + b
+        result = tf.matmul(n, W)# + V
+        return result
+
+def make_reverse_linkage_layer(V, V_aux, A_linkage, no_filters, name = None):
+    with tf.variable_scope(name, default_name='Graph-CNN') as scope:
+        # A_linkage.shape = (N, N_aux)
+        # V.shape = (N, C)
+        # V_aux.shape = (N_aux, C')
+
+        no_A = 1
+        no_features = V.get_shape()[1].value
+        no_features_aux = V_aux.get_shape()[1].value
+        no_filters = no_features_aux
+        W = make_variable_with_weight_decay('weights', [no_features, no_filters], stddev=math.sqrt(1.0/(no_features*(2)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
+#         W_I = make_variable_with_weight_decay('weights_I', [no_features_aux, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features_aux*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
+#         b = make_bias_variable('bias', [no_filters])
+        
+        n = tf.matmul(A_linkage, V)
+
+#         result = tf.matmul(n, W) + tf.matmul(V_aux, W_I) + b
+#         result = tf.matmul(n, W) + V_aux
+        result = tf.matmul(n,W)
         return result
