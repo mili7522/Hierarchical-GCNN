@@ -102,7 +102,7 @@ class SA1Experiment():
         net.create_network(input)
         
         if self.reverseLinkagePosition == "Early" or self.reverseLinkagePosition == "Both":
-            net.make_reverse_auxilary_linkage_layer(0)
+            net.make_reverse_auxilary_linkage_layer(self.linkageNeurons, with_act_func = self.linkageActFun, with_bn = self.linkageBatchNorm)
         if self.linkagePosition == "Early" or self.linkagePosition == "Both":
             net.make_auxilary_linkage_layer(self.linkageNeurons, with_act_func = self.linkageActFun, with_bn = self.linkageBatchNorm)
         
@@ -140,7 +140,7 @@ def run(no_folds = 5, supervised = True, i = 0, l = 2, n = 128, expParameters = 
         
     exp = experiment.GGCNNExperiment('2018-08-28-SA1SA2', '2018-08-28-SA1SA2', SA1Experiment(neurons = n, blocks = l, **expParameters))
 
-    exp.num_iterations = 5000
+    exp.num_iterations = 100
     exp.optimizer = 'adam'
     exp.loss_type = 'linear'
 
@@ -171,7 +171,7 @@ def runBatch(expParameters):
     no_folds = 5
     for i in range(no_folds):
         results = run(no_folds, True, i, l, n, expParameters)
-        resultsDict['min_loss'].append(results[1]['min loss'][-1])
+        resultsDict['min_loss'].append(results[1][-1]['min loss'])
         resultsDict['i_vals'].append(i)
         resultsDict['supervised'].append(True)
         resultsDict['no_fold_vals'].append(no_folds)
@@ -180,18 +180,18 @@ def runBatch(expParameters):
     # Semi-supervised
     for i in range(no_folds):
         results = run(no_folds, False, i, l, n, expParameters)
-        min_loss.append(results[1]['min loss'][-1])
-        i_vals.append(i)
-        supervised.append(False)
-        no_fold_vals.append(no_folds)
+        resultsDict['min_loss'].append(results[1][-1]['min loss'])
+        resultsDict['i_vals'].append(i)
+        resultsDict['supervised'].append(False)
+        resultsDict['no_fold_vals'].append(no_folds)
 
     no_folds = 10
     for i in range(no_folds):
         results = run(no_folds, False, i, l, n, expParameters)
-        min_loss.append(results[1]['min loss'][-1])
-        i_vals.append(i)
-        supervised.append(False)
-        no_fold_vals.append(no_folds)
+        resultsDict['min_loss'].append(results[1][-1]['min loss'])
+        resultsDict['i_vals'].append(i)
+        resultsDict['supervised'].append(False)
+        resultsDict['no_fold_vals'].append(no_folds)
 
     numberOfResults = len(resultsDict['min_loss'])
     otherParams = dict( [(k, [v] * numberOfResults) for k,v in expParameters.items()])
