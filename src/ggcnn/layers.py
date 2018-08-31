@@ -139,7 +139,8 @@ def make_linkage_layer(V, V_aux, A_linkage, no_filters, name = None):
         no_A = 1
         no_features = V.get_shape()[1].value
         no_features_aux = V_aux.get_shape()[1].value
-        no_filters = no_features
+        if no_filters is None:
+            no_filters = no_features
         W = make_variable_with_weight_decay('weights', [no_features_aux, no_filters], stddev=math.sqrt(1.0/(no_features_aux*(2)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
 #         W_I = make_variable_with_weight_decay('weights_I', [no_features, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
 #         b = make_bias_variable('bias', [no_filters])
@@ -159,7 +160,8 @@ def make_reverse_linkage_layer(V, V_aux, A_linkage, no_filters, name = None):
         no_A = 1
         no_features = V.get_shape()[1].value
         no_features_aux = V_aux.get_shape()[1].value
-        no_filters = no_features_aux
+        if no_filters is None:
+            no_filters = no_features_aux
         W = make_variable_with_weight_decay('weights', [no_features, no_filters], stddev=math.sqrt(1.0/(no_features*(2)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
 #         W_I = make_variable_with_weight_decay('weights_I', [no_features_aux, no_filters], stddev=math.sqrt(GraphCNNGlobal.GRAPHCNN_I_FACTOR/(no_features_aux*(no_A+1)*GraphCNNGlobal.GRAPHCNN_INIT_FACTOR)))
 #         b = make_bias_variable('bias', [no_filters])
