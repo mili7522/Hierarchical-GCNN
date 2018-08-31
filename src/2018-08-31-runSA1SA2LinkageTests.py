@@ -140,7 +140,7 @@ def run(no_folds = 5, supervised = True, i = 0, l = 2, n = 128, expParameters = 
         
     exp = experiment.GGCNNExperiment('2018-08-28-SA1SA2', '2018-08-28-SA1SA2', SA1Experiment(neurons = n, blocks = l, **expParameters))
 
-    exp.num_iterations = 100
+    exp.num_iterations = 5000
     exp.optimizer = 'adam'
     exp.loss_type = 'linear'
 
@@ -207,15 +207,72 @@ dfs = []
 ### Test 1
 expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "None", "linkageActFun": True, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": False}
+print(expParameters)
 dfs.append( runBatch(expParameters = expParameters) )
 
 ### Test 2
 expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
+print(expParameters)
 dfs.append( runBatch(expParameters = expParameters) )
 
+
+### Test 3
+expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": True, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
+print(expParameters)
+dfs.append( runBatch(expParameters = expParameters) )
 
 
 ### Combine and output
 df = pd.concat(dfs)
-df.to_csv("2018-08-31-TestResults.csv")
+df.to_csv("2018-09-01-TestResults.csv")
+
+
+
+### Test 4
+expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": False}
+print(expParameters)
+dfs.append( runBatch(expParameters = expParameters) )
+
+
+### Test 5
+expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
+print(expParameters)
+dfs.append( runBatch(expParameters = expParameters) )
+
+
+### Test 6
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
+print(expParameters)
+dfs.append( runBatch(expParameters = expParameters) )
+
+
+### Combine and output
+df = pd.concat(dfs)
+df.to_csv("2018-09-01-TestResults.csv")
+
+### Test 7
+expParameters = {"reverseLinkagePosition": "Both", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
+print(expParameters)
+dfs.append( runBatch(expParameters = expParameters) )
+
+### Test 8
+expParameters = {"reverseLinkagePosition": "Both", "linkagePosition": "Both", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
+print(expParameters)
+dfs.append( runBatch(expParameters = expParameters) )
+
+### Test 9
+expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True}
+print(expParameters)
+dfs.append( runBatch(expParameters = expParameters) )
+
+### Combine and output
+df = pd.concat(dfs)
+df.to_csv("2018-09-01-TestResults.csv")

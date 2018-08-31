@@ -102,12 +102,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
 src/Data/Unused/
 src/Graphs/
-
 src/ggcnn/2018-08-28-ggcnn_1.tar.gz
 src/ggcnn/experiment_linear.py
 src/ggcnn/experiment_old.py
 src/ggcnn/experiment_ordinal.py
 src/ggcnn/gis_utils.py
-PBS/
+PBS/Output
