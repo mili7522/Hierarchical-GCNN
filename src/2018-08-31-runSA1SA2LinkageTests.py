@@ -179,18 +179,18 @@ def runBatch(expParameters):
     
     # Semi-supervised
     for i in range(no_folds):
-        results = run(no_folds, True, i, l, n, expParameters)
+        results = run(no_folds, False, i, l, n, expParameters)
         min_loss.append(results[1]['min loss'][-1])
         i_vals.append(i)
-        supervised.append(True)
+        supervised.append(False)
         no_fold_vals.append(no_folds)
 
     no_folds = 10
     for i in range(no_folds):
-        results = run(no_folds, True, i, l, n, expParameters)
+        results = run(no_folds, False, i, l, n, expParameters)
         min_loss.append(results[1]['min loss'][-1])
         i_vals.append(i)
-        supervised.append(True)
+        supervised.append(False)
         no_fold_vals.append(no_folds)
 
     numberOfResults = len(resultsDict['min_loss'])
@@ -205,13 +205,13 @@ def runBatch(expParameters):
 dfs = []
 
 ### Test 1
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "None", "linkageActFun": True, "linkageBatchNorm" True,
-                 "linkageNeurons" None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": False}
+expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "None", "linkageActFun": True, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": False}
 dfs.append( runBatch(expParameters = expParameters) )
 
 ### Test 2
-expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm" True,
-                 "linkageNeurons" None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
+expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True}
 dfs.append( runBatch(expParameters = expParameters) )
 
 

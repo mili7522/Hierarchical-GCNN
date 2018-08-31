@@ -102,14 +102,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-src/Data/Unused/2018-08-24-NSW-SA1Input.csv
-src/Data/Unused/3. JoinFeatures-SA1.py
-src/Data/Unused/AEC_SA1_PP_pc.csv
-src/Data/Unused/SA1_FEATURES_2018_NSW.csv
-src/Graphs/events.out.tfevents.1534730835.kit-Precision-M4800
+src/Data/Unused/
+src/Graphs/
 
 src/ggcnn/2018-08-28-ggcnn_1.tar.gz
 src/ggcnn/experiment_linear.py
 src/ggcnn/experiment_old.py
 src/ggcnn/experiment_ordinal.py
 src/ggcnn/gis_utils.py
+PBS/
