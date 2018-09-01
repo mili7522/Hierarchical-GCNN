@@ -70,32 +70,30 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
 #         prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
 #         return prob
 
-# def update_adjacency_weighting(V, A, global_step, distance_mat):
-#     with tf.variable_scope('AdjacencyAdjustment') as scope:
+def update_linkage_weighting(V, V_aux, L):
+    with tf.variable_scope('LinkageAdjustment') as scope:
 
-#         no_features = V.get_shape()[1].value
+        no_features = V.get_shape()[1].value
 
-#         W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
-#         M = tf.matmul(W, tf.transpose(W))
+        W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
+        M = tf.matmul(W, tf.transpose(W))
 
+        d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
+        d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V_aux)))
+        d3 = tf.reduce_sum(tf.multiply(V_aux, tf.matmul(V_aux, M)), axis = 1, keepdims = True)
+        D = tf.nn.relu( d1 + tf.transpose(d3) - tf.scalar_mul(2, d2)) + 1E-7  # Set negative values to small epsilon (sqrt gradient undefined at 0)
+        D = tf.sqrt(D)
 
-#         d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
-#         d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V)))
-#         D = tf.nn.relu( d1 + tf.transpose(d1) - tf.scalar_mul(2, d2)) + 1E-7  # Set negative values to small epsilon (sqrt gradient undefined at 0)
-#         D = tf.sqrt(D)
+        G = tf.exp(tf.negative(D) / 10)
         
-#         dist_beta = make_variable_with_weight_decay('dist_beta', [1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
-#         D = D + dist_beta * distance_mat
+#         gs = tf.floor(global_step / 20)
+#         decay = tf.maximum(tf.pow(0.99, gs), 0.5)
+#         A_comb = decay * A + (1 - decay) * tf.ones_like(A)
 
-#         G = tf.exp(tf.negative(D) / 10)
-        
-# #         gs = tf.floor(global_step / 20)
-# #         decay = tf.maximum(tf.pow(0.99, gs), 0.5)
-# #         A_comb = decay * A + (1 - decay) * tf.ones_like(A)
-#         result = tf.multiply(A, tf.expand_dims(G,1))
-#         result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(A))
+        result = tf.multiply(L, G)
+        result = tf.multiply( tf.divide(result, tf.reduce_sum(result)) , tf.reduce_sum(L))
 
-#         return result, M, dist_beta
+        return result
 
 def make_graphcnn_layer(V, A, no_filters, name = None):
     with tf.variable_scope(name, default_name='Graph-CNN') as scope:

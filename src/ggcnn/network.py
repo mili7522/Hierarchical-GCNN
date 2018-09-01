@@ -21,6 +21,8 @@ class GraphCNNNetwork(object):
         self.current_forward_linkage = input[6]
         self.current_reverse_linkage = input[7]
         self.current_mask_auxilary = input[8]
+        self.initial_V = input[0]
+        self.initial_V_auxilary = input[4]
         
         if self.network_debug:
             size = tf.reduce_sum(self.current_mask, axis=1)
@@ -82,11 +84,6 @@ class GraphCNNNetwork(object):
                 self.current_V = tf.Print(self.current_V, [tf.shape(self.current_V), batch_mean, batch_var], message='"%s" V Shape, Mean, Var:' % scope.name)
         return self.current_V
 
-    # def make_adjacency_adjustment_layer(self, name = None):
-    #     with tf.variable_scope(name, default_name='AdjacencyAdjustment') as scope: 
-    #         self.current_A, self.M, self.dist_beta = update_adjacency_weighting(self.M_features, self.current_A, self.global_step, self.distance_mat)
-    #     # self.M = make_variable('M', [no_features, no_features], initializer=tf.random_uniform_initializer(0, maxval=0.001))
-
 
     def make_auxilary_graphcnn_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
         with tf.variable_scope(name, default_name='Auxilary-Graph-CNN') as scope:
@@ -129,3 +126,12 @@ class GraphCNNNetwork(object):
             if with_act_func:
                 self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
         return self.current_V_auxilary
+
+    
+    def make_linkage_adjustment_layer(self, name = None):
+        with tf.variable_scope(name, default_name='LinkageAdjustment') as scope: 
+            self.current_forward_linkage = update_linkage_weighting(self.initial_V, self.initial_V_auxilary, self.current_forward_linkage)
+    
+    def make_reverse_linkage_adjustment_layer(self, name = None):
+        with tf.variable_scope(name, default_name='ReverseLinkageAdjustment') as scope: 
+            self.current_reverse_linkage = update_linkage_weighting(self.initial_V_auxilary, self.initial_V, self.current_reverse_linkage)

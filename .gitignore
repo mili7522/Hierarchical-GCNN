@@ -105,9 +105,10 @@ venv.bak/
 
 src/Data/Unused/
 src/Graphs/
-src/ggcnn/2018-08-28-ggcnn_1.tar.gz
+src/ggcnn/*.tar.gz
 src/ggcnn/experiment_linear.py
 src/ggcnn/experiment_old.py
 src/ggcnn/experiment_ordinal.py
 src/ggcnn/gis_utils.py
 PBS/Output
+src/ggcnn/*.7z
