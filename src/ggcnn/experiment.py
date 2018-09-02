@@ -3,6 +3,7 @@ from ggcnn.network import GraphCNNNetwork
 import numpy as np
 import tensorflow as tf
 import time
+from sklearn.decomposition import PCA
 
 class GGCNNExperiment():
     def __init__(self, dataset_name, model_name, net_constructor):
@@ -52,7 +53,7 @@ class GGCNNExperiment():
         self.auxilary_reverse_linkage = dataset[6].astype(np.float32)
 
     
-    def create_data(self, train_idx, test_idx):
+    def create_data(self, train_idx, test_idx, n_components = 10):
         self.train_idx = train_idx
         self.test_idx = test_idx
         with tf.device("/cpu:0"):
@@ -66,17 +67,30 @@ class GGCNNExperiment():
                 auxilary_adjacency = self.auxilary_adjacency
                 auxilary_forward_linkage = self.auxilary_forward_linkage
                 auxilary_reverse_linkage = self.auxilary_reverse_linkage
+                
+                ### PCA
+#                 pca = PCA(n_components=0.7, svd_solver='full')
+                if n_components is not None:
+                    pca = PCA(n_components=n_components, svd_solver='full')
+                    reduced_features = pca.fit_transform(vertices)
+                    print("PCA variance ratio: ", pca.explained_variance_ratio_)
+                    reduced_features_auxilary = pca.transform(auxilary_vertices)
+                ###
+                else:
+                    reduced_features = vertices
+                    reduced_features_auxilary = auxilary_vertices
+                
 
 
                 train_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
                 train_input_mask[self.train_idx, :] = 1
                 train_input_mask_auxilary = np.ones([self.auxilary_graph_size, 1]).astype(np.float32)
-                self.train_input = [vertices, adjacency, labels, train_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, train_input_mask_auxilary]
+                self.train_input = [vertices, adjacency, labels, train_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, train_input_mask_auxilary, reduced_features, reduced_features_auxilary]
                 
                 test_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
                 test_input_mask[self.test_idx, :] = 1
                 test_input_mask_auxilary = np.zeros([self.auxilary_graph_size, 1]).astype(np.float32)
-                self.test_input = [vertices, adjacency, labels, test_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, test_input_mask_auxilary]
+                self.test_input = [vertices, adjacency, labels, test_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, test_input_mask_auxilary, reduced_features, reduced_features_auxilary]
                 
                 
 

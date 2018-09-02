@@ -70,21 +70,27 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
 #         prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
 #         return prob
 
-def update_linkage_weighting(V, V_aux, L):
+def update_linkage_weighting(V, V_aux, L, W):
     with tf.variable_scope('LinkageAdjustment') as scope:
 
-        no_features = V.get_shape()[1].value
+#         no_features = V.get_shape()[1].value
 
-        W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
+#         W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
         M = tf.matmul(W, tf.transpose(W))
 
         d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
         d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V_aux)))
         d3 = tf.reduce_sum(tf.multiply(V_aux, tf.matmul(V_aux, M)), axis = 1, keepdims = True)
+        
+#         d1 = tf.reduce_sum(tf.square(V), axis = 1, keepdims = True)
+#         d2 = tf.matmul(V, tf.transpose(V_aux))
+#         d3 = tf.reduce_sum(tf.square(V_aux), axis = 1, keepdims = True)
+        
         D = tf.nn.relu( d1 + tf.transpose(d3) - tf.scalar_mul(2, d2)) + 1E-7  # Set negative values to small epsilon (sqrt gradient undefined at 0)
         D = tf.sqrt(D)
 
-        G = tf.exp(tf.negative(D) / 10)
+#         S = make_variable_with_weight_decay('S', [1], stddev = 10, wd=0, initializerType = 'normal')
+        G = tf.exp(tf.negative(D) / 8)
         
 #         gs = tf.floor(global_step / 20)
 #         decay = tf.maximum(tf.pow(0.99, gs), 0.5)

@@ -10,6 +10,7 @@ class GraphCNNNetwork(object):
         self.current_V_auxilary = None
         self.current_A_auxilary = None
         self.current_linkage = None
+        self.M_W = None
         
     def create_network(self, input):
         self.current_V = input[0]
@@ -21,8 +22,8 @@ class GraphCNNNetwork(object):
         self.current_forward_linkage = input[6]
         self.current_reverse_linkage = input[7]
         self.current_mask_auxilary = input[8]
-        self.initial_V = input[0]
-        self.initial_V_auxilary = input[4]
+        self.initial_V = input[9]
+        self.initial_V_auxilary = input[10]
         
         if self.network_debug:
             size = tf.reduce_sum(self.current_mask, axis=1)
@@ -129,9 +130,15 @@ class GraphCNNNetwork(object):
 
     
     def make_linkage_adjustment_layer(self, name = None):
-        with tf.variable_scope(name, default_name='LinkageAdjustment') as scope: 
-            self.current_forward_linkage = update_linkage_weighting(self.initial_V, self.initial_V_auxilary, self.current_forward_linkage)
+        with tf.variable_scope(name, default_name='LinkageAdjustment') as scope:
+            if self.M_W is None:
+                no_features = self.initial_V.get_shape()[1].value
+                self.M_W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
+            self.current_forward_linkage = update_linkage_weighting(self.initial_V, self.initial_V_auxilary, self.current_forward_linkage, self.M_W)
     
     def make_reverse_linkage_adjustment_layer(self, name = None):
-        with tf.variable_scope(name, default_name='ReverseLinkageAdjustment') as scope: 
-            self.current_reverse_linkage = update_linkage_weighting(self.initial_V_auxilary, self.initial_V, self.current_reverse_linkage)
+        with tf.variable_scope(name, default_name='ReverseLinkageAdjustment') as scope:
+            if self.M_W is None:
+                no_features = self.initial_V.get_shape()[1].value
+                self.M_W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
+            self.current_reverse_linkage = update_linkage_weighting(self.initial_V_auxilary, self.initial_V, self.current_reverse_linkage, tf.transpose(self.M_W))
