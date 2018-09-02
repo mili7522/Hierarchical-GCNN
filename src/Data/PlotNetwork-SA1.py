@@ -12,9 +12,9 @@ os.chdir('Data')
 nsw = gpd.read_file('../../../../Data - Initial Testing/Geography/1270055001_sa1_2016_aust_shape/SA1_2016_AUST.shp')
 nsw = nsw[nsw['GCC_NAME16'].isin(['Rest of NSW', 'Greater Sydney'])]
 
-features = pd.read_csv('SA1_AEC_FINAL_pc.csv', index_col = 0)
+features = pd.read_csv('2018-09-02-NSW-SA1Input-Normalised.csv', index_col = 0)
 features = features[features.index.isin(nsw['SA1_7DIG16'])]
-linkFile = "Geography/2018-09-01-NSW-Neighbouring_Suburbs_With_Bridges.csv"
+linkFile = "Geography/2018-09-01-NSW-Neighbouring_Suburbs_With_Bridges-Filtered.csv"
 centresFile = "Geography/2018-09-01-NSW-SA1-2016Centres.csv"
 
 ax = plt.axes([0, 0, 1, 1],
@@ -29,8 +29,12 @@ cmp = plt.get_cmap('Greens')  # Colour map. Also can use 'jet', 'brg', 'rainbow'
 max_value = features['SA1_2PP'].max()
 for sa1, geometry in zip(nsw.SA1_7DIG16, nsw.geometry):
     try:
-        value = features.loc[int(sa1)].loc['SA1_2PP'] / max_value
-        facecolor = cmp(value)
+        value = features.loc[int(sa1)].loc['SA1_2PP']
+        if value == -1:
+            facecolor = 'white'
+        else:
+            value = value / max_value
+            facecolor = cmp(value)
     except:
         facecolor = 'white'
     edgecolor = 'white'
@@ -49,8 +53,8 @@ longs = centresData.set_index("SA1_7DIG16").loc[:,"1"]
 for edge in linkData.itertuples():
     start = edge[1]
     end = edge[2]
-    if (not start in features.index) or (not end in features.index):
-        continue
+    # if (not start in features.index) or (not end in features.index):
+        # continue
     try:
         lat = [lats[start], lats[end]]
         long = [longs[start], longs[end]]
@@ -63,9 +67,9 @@ for edge in linkData.itertuples():
 
 sm = plt.cm.ScalarMappable(cmap=cmp,norm=plt.Normalize(0,max_value))
 sm._A = []
-plt.colorbar(sm,ax=ax, fraction = 0.03, label = 'Percentage Two Party Preferred')
+plt.colorbar(sm,ax=ax, fraction = 0.03, label = 'Labor Percentage - Two Party Preferred')
 
 # ax.set_title('Distribution of Households over Suburbs')
 
 plt.gca().outline_patch.set_visible(False)
-plt.savefig('NSWSA1WithLinks-AECOnly.png', dpi = 300, format = 'png', bbox_inches = 'tight')
+plt.savefig('NSWSA1WithLinks.png', dpi = 300, format = 'png', bbox_inches = 'tight')

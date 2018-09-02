@@ -118,3 +118,4 @@ src/Data/Geography/2018-09-01-NSW2016SA2/
 src/Data/Geography/*.zip
 *.py~
 *.pbs~
+src/Results/Preliminary/

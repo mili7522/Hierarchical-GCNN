@@ -20,7 +20,10 @@ neighbours = [(117031337,121041417, 'Sydney - Haymarket - The Rocks', 'North Syd
               (128021536, 119031371, 'Oyster Bay - Como - Jannali', 'Oatley - Hurstville Grove'),
               (128021536, 128021535, 'Oyster Bay - Como - Jannali', 'Menai - Lucas Heights - Woronora'),
               (128021534, 119011358, 'llawong - Alfords Point', 'Padstow'),
-              (119031372, 119011358, 'Peakhurst - Lugarno', 'Padstow')]
+              (119031372, 119011358, 'Peakhurst - Lugarno', 'Padstow'),
+              (107031143, 107011547, 'Warilla', 'Windang - Primbee'),
+              (111011212, 111011207, 'Swansea - Caves Beach', 'Belmont South - Blacksmiths'),
+              (112031254, 112031552, 'Tweed Heads', 'Tweed Heads South')]
 
 
 neighbouring_suburbs = pd.read_csv('Geography/SA2_2016_NEIGHBOURS_expanded.csv', index_col = 0, names = ['src_SA2_MAIN16', 'nbr_SA2_MAIN16'], header = 0)
