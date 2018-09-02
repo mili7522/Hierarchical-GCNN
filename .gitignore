@@ -112,3 +112,9 @@ src/ggcnn/experiment_ordinal.py
 src/ggcnn/gis_utils.py
 PBS/Output
 src/ggcnn/*.7z
+src/Data/*.png
+src/Data/Geography/1270055001_sa2_2016_aust_shape/
+src/Data/Geography/2018-09-01-NSW2016SA2/
+src/Data/Geography/*.zip
+*.py~
+*.pbs~
