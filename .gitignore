@@ -119,3 +119,4 @@ src/Data/Geography/*.zip
 *.py~
 *.pbs~
 src/Results/Preliminary/
+src/Results/Visualisations/

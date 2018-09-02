@@ -228,20 +228,20 @@ def runBatch(expParameters, l = 2, n = 128, exp_name = None):
         resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
         saveResults(results, predictions_df, resultsFolder, exp_name, "_Supervised-5-{}".format(i))
         
-    # # Semi-supervised
-    # supervised = False
-    # for i in range(no_folds):
-    #     results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
-    #     predictions_df, r2, corr = getPrediction(idx_split, results)
-    #     resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
-    #     saveResults(results, predictions_df, resultsFolder, exp_name, "_Semisupervised-5-{}".format(i))
+    # Semi-supervised
+    supervised = False
+    for i in range(no_folds):
+        results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
+        predictions_df, r2, corr = getPrediction(idx_split, results)
+        resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
+        saveResults(results, predictions_df, resultsFolder, exp_name, "_Semisupervised-5-{}".format(i))
 
-    # no_folds = 10
-    # for i in range(no_folds):
-    #     results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
-    #     predictions_df, r2, corr = getPrediction(idx_split, results)
-    #     resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
-    #     saveResults(results, predictions_df, resultsFolder, exp_name, "_Semisupervised-10-{}".format(i))
+    no_folds = 10
+    for i in range(no_folds):
+        results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
+        predictions_df, r2, corr = getPrediction(idx_split, results)
+        resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
+        saveResults(results, predictions_df, resultsFolder, exp_name, "_Semisupervised-10-{}".format(i))
 
     numberOfResults = len(resultsDict['min_loss'])
     otherParams = dict( [(k, [v] * numberOfResults) for k,v in expParameters.items()])
@@ -258,12 +258,91 @@ dfSaveName = "Results/2018-09-03-MainTests1.csv"
 
 ### Test 1
 exp_number = 1
+expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "None", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP1_NoAuxilary")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 2
+exp_number = 2
 expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
                  "linkage_adjustment_components": None}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "")
-dfs.append( pd.concat([{"ExpNo": [exp_number]*len(df)}, df], axis = 1) )
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP2_EarlyLateGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 3
+exp_number = 3
+expParameters = {"reverseLinkagePosition": "Both", "linkagePosition": "Both", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP3_BothBothGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 4
+exp_number = 4
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP4_LateLateEmbGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 5
+exp_number = 5
+expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": False,
+                 "linkage_adjustment_components": None}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP5_NoneLate")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 6
+exp_number = 6
+expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP6_EarlyLateGCAdj3")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+
+### Test 7
+exp_number = 7
+expParameters = {"reverseLinkagePosition": "Both", "linkagePosition": "Both", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP7_BothBothGCAdj3")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 8
+exp_number = 8
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP8_LateLateEmbGCAdj3")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 9
+exp_number = 9
+expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9_NoneLateGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
 
 ### Combine and output
 df = pd.concat(dfs); df.to_csv(dfSaveName)

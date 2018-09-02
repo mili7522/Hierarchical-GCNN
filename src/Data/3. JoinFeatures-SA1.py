@@ -18,7 +18,8 @@ nswSA1s = SA1_FEATURES.loc[SA1s['GCCSA_NAME_2016'].isin(['Rest of NSW', 'Greater
 nswSA1s['SA1_2PP'] = -1  # To indicate missing AEC value
 
 
-AEC = pd.read_csv('ALP_2PP_SA12016_FINAL.csv', index_col = 0)
+##### For use with the new AEC file --- Unused
+# AEC = pd.read_csv('ALP_2PP_SA12016_FINAL.csv', index_col = 0)
 
 ###
 # AEC_not_Features = AEC.index[~AEC.index.isin(nswSA1s.index)]
@@ -33,8 +34,16 @@ AEC = pd.read_csv('ALP_2PP_SA12016_FINAL.csv', index_col = 0)
 # print('Features_not_AEC:', len(Features_not_AEC))
 ###
 
-AEC = AEC[AEC.index.isin(nswSA1s.index)]
+# AEC = AEC[AEC.index.isin(nswSA1s.index)]
 
-nswSA1s.loc[AEC.index, 'SA1_2PP'] = AEC['SA1_2PP']
+# nswSA1s.loc[AEC.index, 'SA1_2PP'] = AEC['SA1_2PP']
 
-nswSA1s.to_csv('2018-09-02-NSW-SA1Input.csv', index = True)
+# nswSA1s.to_csv('2018-09-02-NSW-SA1Input.csv', index = True)
+#####
+
+aecSA1s = pd.read_csv('SA1_AEC_FINAL_pc.csv', index_col = 0)
+
+sa1sWithoutAEC = nswSA1s[~nswSA1s.index.isin(aecSA1s.index)]
+
+combinedSA1s = pd.concat([aecSA1s, sa1sWithoutAEC], axis = 0)
+combinedSA1s.to_csv('2018-09-02-NSW-SA1Input.csv', index = True)
