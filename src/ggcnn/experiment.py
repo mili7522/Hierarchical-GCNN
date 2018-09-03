@@ -72,9 +72,9 @@ class GGCNNExperiment():
 #                 pca = PCA(n_components=0.7, svd_solver='full')
                 if n_components is not None:
                     pca = PCA(n_components=n_components, svd_solver='full')
-                    reduced_features = pca.fit_transform(vertices)
+                    reduced_features = pca.fit_transform(vertices.copy())
                     print("PCA variance ratio: ", pca.explained_variance_ratio_)
-                    reduced_features_auxilary = pca.transform(auxilary_vertices)
+                    reduced_features_auxilary = pca.transform(auxilary_vertices.copy())
                 ###
                 else:
                     reduced_features = vertices

@@ -120,3 +120,4 @@ src/Data/Geography/*.zip
 *.pbs~
 src/Results/Preliminary/
 src/Results/Visualisations/
+src/Results/Predictions

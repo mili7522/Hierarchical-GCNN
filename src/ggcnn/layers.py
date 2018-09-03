@@ -70,13 +70,13 @@ def make_bn(input, phase, axis=-1, epsilon=0.001, mask=None, num_updates=None, n
 #         prob = tf.div(exp, tf.reduce_sum(exp, axis=axis, keep_dims=True))
 #         return prob
 
-def update_linkage_weighting(V, V_aux, L, W):
+def update_linkage_weighting(V, V_aux, L, M):
     with tf.variable_scope('LinkageAdjustment') as scope:
 
 #         no_features = V.get_shape()[1].value
 
 #         W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = 0.001, wd=0.0005, initializerType = 'normal')
-        M = tf.matmul(W, tf.transpose(W))
+        
 
         d1 = tf.reduce_sum(tf.multiply(V, tf.matmul(V, M)), axis = 1, keepdims = True)
         d2 = tf.matmul(V, tf.matmul(M, tf.transpose(V_aux)))
