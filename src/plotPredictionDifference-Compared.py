@@ -41,8 +41,8 @@ SA1s_sub = SA1s[SA1s['SA1_7DIG16'].isin(map(str,prediction_diff1.index))].copy()
 SA1s_sub['PredictionDiffDiff'] = np.abs(prediction_diff1.values) - np.abs(prediction_diff2.values)
 
 # Clip results
-SA1s_sub['PredictionDiffDiff'].clip_upper(5, inplace = True)
-SA1s_sub['PredictionDiffDiff'].clip_lower(-5, inplace = True)
+SA1s_sub['PredictionDiffDiff'].clip_upper(10, inplace = True)
+SA1s_sub['PredictionDiffDiff'].clip_lower(-10, inplace = True)
 #
 
 largest_absolute = max(SA1s_sub['PredictionDiffDiff'].max(), -SA1s_sub['PredictionDiffDiff'].min())
@@ -53,16 +53,18 @@ cmp = plt.get_cmap('RdYlGn')  # Diverging
 ax = SA1s_sub.plot(column = 'PredictionDiffDiff', cmap = cmp, vmin = vmin, vmax = vmax)
 plt.axis('off')
 # ax.set_title('Difference between prediction error\nfrom hierarchical graph-cnn vs standard graph-cnn')
-fig = ax.get_figure()
+# fig = ax.get_figure()
 # cax = fig.add_axes([0.9, 0.1, 0.03, 0.8])
-fig.subplots_adjust(right=0.9)
-cax = fig.add_axes([0.9, 0.07, 0.05, 0.7])
-fig.subplots_adjust(hspace=0.0, wspace=0.0)
+# fig.subplots_adjust(right=0.9)
+# cax = fig.add_axes([0.9, 0.07, 0.05, 0.7])
+# fig.subplots_adjust(hspace=0.0, wspace=0.0)
 #norm = matplotlib.colors.BoundaryNorm(np.arange(vmin, vmax + 1), cmp.N)   # Discrete colour
 #sm = plt.cm.ScalarMappable(cmap = cmp, norm = norm)
 sm = plt.cm.ScalarMappable(cmap = cmp, norm = plt.Normalize(vmin, vmax))
 sm._A = []
-fig.colorbar(sm, cax=cax)
+# fig.colorbar(sm, cax=cax)
+plt.tight_layout()
+plt.colorbar(sm,ax=ax, fraction = 0.03)
 plt.savefig('Results/Visualisations/' + resultFile1 + '-' + resultFile2 + '-AVG.png', dpi = 300, format = 'png', bbox_inches = 'tight')
 plt.close()
 

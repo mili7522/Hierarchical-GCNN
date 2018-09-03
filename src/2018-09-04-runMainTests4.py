@@ -7,6 +7,8 @@ import sklearn
 from collections import defaultdict
 import os
 
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def load_sa1_dataset():
     keys_SA1 = []
@@ -226,12 +228,12 @@ def runBatch(expParameters, l = 2, n = 128, exp_name = None):
 
     # Supervised
     no_folds = 5
-    # supervised = True
-    # for i in range(no_folds):
-    #     results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
-    #     predictions_df, r2, corr = getPrediction(idx_split, results)
-    #     resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
-    #     saveResults(results, predictions_df, resultsFolder, exp_name, "_Supervised-5-{}".format(i))
+    supervised = True
+    for i in range(no_folds):
+        results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
+        predictions_df, r2, corr = getPrediction(idx_split, results)
+        resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
+        saveResults(results, predictions_df, resultsFolder, exp_name, "_Supervised-5-{}".format(i))
         
     # Semi-supervised
     supervised = False
@@ -241,12 +243,12 @@ def runBatch(expParameters, l = 2, n = 128, exp_name = None):
         resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
         saveResults(results, predictions_df, resultsFolder, exp_name, "_Semisupervised-5-{}".format(i))
 
-    # no_folds = 10
-    # for i in range(no_folds):
-    #     results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
-    #     predictions_df, r2, corr = getPrediction(idx_split, results)
-    #     resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
-    #     saveResults(results, predictions_df, resultsFolder, exp_name, "_Semisupervised-10-{}".format(i))
+    no_folds = 10
+    for i in range(no_folds):
+        results, idx_split = run(no_folds, supervised, i, l, n, expParameters)
+        predictions_df, r2, corr = getPrediction(idx_split, results)
+        resultsDict = appendResults(resultsDict, results, r2, corr, i, supervised, no_folds)
+        saveResults(results, predictions_df, resultsFolder, exp_name, "_Semisupervised-10-{}".format(i))
 
     numberOfResults = len(resultsDict['min_loss'])
     otherParams = dict( [(k, [v] * numberOfResults) for k,v in expParameters.items()])
@@ -259,124 +261,65 @@ def runBatch(expParameters, l = 2, n = 128, exp_name = None):
 
 
 dfs = []
-dfSaveName = "Results/2018-09-03-MainTests3Adjustment.csv"
+dfSaveName = "Results/2018-09-04-MainTests4.csv"
 
-### Test 9001
-exp_number = 9001
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+### Test 10
+exp_number = 10
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 1, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9001_NoneLateGCAdj1")
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP10_LateLateGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 11
+exp_number = 11
+expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP11_NoneLateEmbGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Test 12
+exp_number = 12
+expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP12_NoneLateEmbGC")
 dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
 
 ### Combine and output
 df = pd.concat(dfs); df.to_csv(dfSaveName)
 
-### Test 9002
-exp_number = 9002
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+### Test 13
+exp_number = 10
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
                  "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9002_NoneLateGCAdj3")
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP13_LateLateGCAdj3")
 dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
 
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 9003
-exp_number = 9003
+### Test 14
+exp_number = 11
 expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 5, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9003_NoneLateGCAdj5")
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP14_NoneLateEmbGCAdj3")
 dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
 
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 9004
-exp_number = 9004
+### Test 15
+exp_number = 12
 expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": None, "linkage_W_2D": True}
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9004_NoneLateGCAdj33")
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP15_NoneLateEmbGCAdj3")
 dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
 
 ### Combine and output
 df = pd.concat(dfs); df.to_csv(dfSaveName)
 
-### Test 9005
-exp_number = 9005
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 5, "reverse_linkage_adjustment_components": None, "linkage_W_2D": True}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9005_NoneLateGCAdj55")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 9006
-exp_number = 9006
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 1, "reverse_linkage_adjustment_components": 1, "linkage_W_2D": False}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9006_NoneLateGCAdj1X2")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 9007
-exp_number = 9007
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": 3, "linkage_W_2D": False}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9007_NoneLateGCAdj3X3")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 9008
-exp_number = 9008
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 5, "reverse_linkage_adjustment_components": 5, "linkage_W_2D": False}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9008_NoneLateGCAdj5X2")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 9009
-exp_number = 9009
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": 3, "linkage_W_2D": True}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9009_NoneLateGCAdj33X2")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 9010
-exp_number = 9010
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": 5, "reverse_linkage_adjustment_components": 5, "linkage_W_2D": True}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-03_EXP9010_NoneLateGCAdj55X2")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)

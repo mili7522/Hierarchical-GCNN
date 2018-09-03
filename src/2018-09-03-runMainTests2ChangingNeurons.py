@@ -182,7 +182,7 @@ def appendResults(resultsDict, results, r2, corr, i, supervised, no_folds):
     resultsDict['r2'].append(r2)
     resultsDict['corr'].append(corr)
     resultsDict['i_vals'].append(i)
-    resultsDict['supervised'].append(True)
+    resultsDict['supervised'].append(supervised)
     resultsDict['no_fold_vals'].append(no_folds)
     return resultsDict
 
