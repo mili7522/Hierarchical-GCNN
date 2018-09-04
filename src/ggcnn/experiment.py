@@ -39,15 +39,15 @@ class GGCNNExperiment():
 
     def preprocess_data(self, dataset):
         l = 0
+        dataset = dataset.copy()
         while True:
             level_dataset = dataset.get('level_{}'.format(l))
             if (level_dataset is None) or (len(level_dataset) == 0):
                 break
             level_dataset['graph_size'] = level_dataset['features'].shape[0]
 
-            for new_key, old_key in zip(['vertices', 'adjacency'], ['features', 'adj_mat']):
-                level_dataset[new_key] = level_dataset[old_key].astype(np.float32)
-                del level_dataset[old_key]
+            for key in ['features', 'adj_mat']:
+                level_dataset[key] = level_dataset[key].astype(np.float32)
 
             embedding = level_dataset.get('embedding')
             if embedding is None:
@@ -166,7 +166,7 @@ class GGCNNExperiment():
 
             level_dataset = getattr(self, 'level_{}_dataset'.format(l))
 
-            for new_key, old_key in zip(['V', 'A'], ['vertices', 'adjacency']):
+            for new_key, old_key in zip(['V', 'A'], ['features', 'adj_mat']):
                 var = initialize_with_placeholder(level_dataset[old_key])
                 train_output['level_{}'.format(l)][new_key] = var
                 test_output['level_{}'.format(l)][new_key] = var

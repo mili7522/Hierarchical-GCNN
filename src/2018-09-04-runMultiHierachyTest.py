@@ -68,16 +68,16 @@ def load_dataset():
     
     # Load SA1, SA2 Links
     with open('Data/2018-09-02-SA1SA2Links.csv', 'r') as file:
-        dataset['level_0']['embedding'] = np.zeros((len(dataset['level_0']['keys']), len(dataset['level_1']['keys'])))
+        dataset['level_1']['projection'] = np.zeros((len(dataset['level_0']['keys']), len(dataset['level_1']['keys'])))
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
                 continue
             s = line[:-1].split(',')
             a = dataset['level_0']['keys'].index(s[0])
             b = dataset['level_1']['keys'].index(s[1])
-            dataset['level_0']['embedding'][a, b] = 1
+            dataset['level_1']['projection'][a, b] = 1
     
-    dataset['level_1']['projection'] = np.transpose(dataset['level_0']['embedding'])
+    dataset['level_0']['embedding'] = np.transpose(dataset['level_1']['projection'])
     
     return dataset
 
