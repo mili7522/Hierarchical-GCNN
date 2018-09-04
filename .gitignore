@@ -121,3 +121,4 @@ src/Data/Geography/*.zip
 src/Results/Preliminary/
 src/Results/Visualisations/
 src/Results/Predictions
+src/Results/
