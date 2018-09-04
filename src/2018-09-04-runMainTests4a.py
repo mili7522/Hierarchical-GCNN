@@ -274,3 +274,51 @@ dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis 
 
 ### Combine and output
 df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 1201
+exp_number = 1201
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": True, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP1201_LateLateEmbEmbGCAdj3")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 1202
+exp_number = 1202
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": True, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": 3, "linkage_W_2D": False}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP1202_LateLateEmbEmbGCAdj33")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 1203
+exp_number = 1203
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": True, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": None, "linkage_W_2D": True}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP1203_LateLateEmbEmbGCAdj3X2")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 1204
+exp_number = 1204
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": True, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": 3, "reverse_linkage_adjustment_components": 3, "linkage_W_2D": True}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-04_EXP1204_LateLateEmbEmbGCAdj33X2")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)

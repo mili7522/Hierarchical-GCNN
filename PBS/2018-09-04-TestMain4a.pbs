@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -P InfoDynFuncStruct
 #PBS -l select=1:ncpus=1:mem=8gb:ngpus=1
-#PBS -l walltime=2:00:00
+#PBS -l walltime=6:00:00
 
 module load python/3.5.1
 source tf/bin/activate
