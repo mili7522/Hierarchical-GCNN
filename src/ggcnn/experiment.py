@@ -38,19 +38,39 @@ class GGCNNExperiment():
 
 
     def preprocess_data(self, dataset):
-        self.graph_size = dataset[0].shape[0]
-        self.auxilary_graph_size = dataset[3].shape[0]
+        l = 0
+        while True:
+            level_dataset = dataset.get('level_{}'.format(l))
+            if (level_dataset is None) or (len(level_dataset) == 0):
+                break
+            level_dataset['graph_size'] = level_dataset['features'].shape[0]
 
-        self.graph_vertices = dataset[0].astype(np.float32)
-        self.graph_adjacency = dataset[1].astype(np.float32)
+            for new_key, old_key in zip(['vertices', 'adjacency'], ['features', 'adj_mat']):
+                level_dataset[new_key] = level_dataset[old_key].astype(np.float32)
+                del level_dataset[old_key]
+
+            embedding = level_dataset.get('embedding')
+            if embedding is None:
+                level_dataset['has_embedding'] = False
+            else:
+                level_dataset['has_embedding'] = True
+                level_dataset['embedding'] = embedding.astype(np.float32)
+
+            projection = level_dataset.get('projection')
+            if projection is None:
+                level_dataset['has_projection'] = False
+            else:
+                level_dataset['has_projection'] = True
+                level_dataset['projection'] = projection.astype(np.float32)
+            
+            setattr(self, 'level_{}_dataset'.format(l), level_dataset)
+            l += 1
+        self.number_of_layers = l
+
         if self.loss_type == "cross_entropy":
-            self.graph_labels = dataset[2].astype(np.int64)
+            self.level_0_dataset['labels'] = self.level_0_dataset['labels'].astype(np.float32)
         elif self.loss_type == "linear":
-            self.graph_labels = dataset[2].astype(np.float32)
-        self.auxilary_vertices = dataset[3].astype(np.float32)
-        self.auxilary_adjacency = dataset[4].astype(np.float32)
-        self.auxilary_forward_linkage = dataset[5].astype(np.float32)
-        self.auxilary_reverse_linkage = dataset[6].astype(np.float32)
+            self.level_0_dataset['labels'] = self.level_0_dataset['labels'].astype(np.int32)
 
     
     def create_data(self, train_idx, test_idx, n_components = 10):
@@ -60,39 +80,24 @@ class GGCNNExperiment():
             with tf.variable_scope('input') as scope:
                 self.print_ext('Creating training Tensorflow Tensors')
                 
-                vertices = self.graph_vertices
-                adjacency = self.graph_adjacency
-                labels = self.graph_labels
-                auxilary_vertices = self.auxilary_vertices
-                auxilary_adjacency = self.auxilary_adjacency
-                auxilary_forward_linkage = self.auxilary_forward_linkage
-                auxilary_reverse_linkage = self.auxilary_reverse_linkage
+                # ### PCA
+                # if n_components is not None:
+                #     pca = PCA(n_components=n_components, svd_solver='full')
+                #     reduced_features = pca.fit_transform(vertices.copy())
+                #     print("PCA variance ratio: ", pca.explained_variance_ratio_)
+                #     reduced_features_auxilary = pca.transform(auxilary_vertices.copy())
+                # ###
+                # else:
+                #     reduced_features = vertices
+                #     reduced_features_auxilary = auxilary_vertices
                 
-                ### PCA
-#                 pca = PCA(n_components=0.7, svd_solver='full')
-                if n_components is not None:
-                    pca = PCA(n_components=n_components, svd_solver='full')
-                    reduced_features = pca.fit_transform(vertices.copy())
-                    print("PCA variance ratio: ", pca.explained_variance_ratio_)
-                    reduced_features_auxilary = pca.transform(auxilary_vertices.copy())
-                ###
-                else:
-                    reduced_features = vertices
-                    reduced_features_auxilary = auxilary_vertices
-                
-
-
-                train_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
+                train_input_mask = np.zeros([self.level_0_dataset['graph_size'], 1]).astype(np.float32)
                 train_input_mask[self.train_idx, :] = 1
-                train_input_mask_auxilary = np.ones([self.auxilary_graph_size, 1]).astype(np.float32)
-                self.train_input = [vertices, adjacency, labels, train_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, train_input_mask_auxilary, reduced_features, reduced_features_auxilary]
-                
-                test_input_mask = np.zeros([self.graph_size, 1]).astype(np.float32)
+                self.level_0_dataset['train_input_mask'] = train_input_mask
+
+                test_input_mask = np.zeros([self.level_0_dataset['graph_size'], 1]).astype(np.float32)
                 test_input_mask[self.test_idx, :] = 1
-                test_input_mask_auxilary = np.zeros([self.auxilary_graph_size, 1]).astype(np.float32)
-                self.test_input = [vertices, adjacency, labels, test_input_mask, auxilary_vertices, auxilary_adjacency, auxilary_forward_linkage, auxilary_reverse_linkage, test_input_mask_auxilary, reduced_features, reduced_features_auxilary]
-                
-                
+                self.level_0_dataset['test_input_mask'] = test_input_mask
 
     def create_loss_function(self):
         self.print_ext('Creating loss function and summaries')
@@ -105,12 +110,12 @@ class GGCNNExperiment():
             inv_sum = (1./tf.reduce_sum(self.net.current_mask))
             
             if self.loss_type == "cross_entropy":
-                cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.net.current_V, labels=self.net.labels)
+                cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.net.current_values['level_0']['V'], labels=self.net.labels)
                 cross_entropy = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(cross_entropy))
                 cross_entropy = tf.reduce_sum(cross_entropy)*inv_sum
 
 
-                correct_prediction = tf.cast(tf.equal(tf.argmax(self.net.current_V, 1), self.net.labels), tf.float32)
+                correct_prediction = tf.cast(tf.equal(tf.argmax(self.net.current_values['level_0']['V'], 1), self.net.labels), tf.float32)
                 correct_prediction = tf.multiply(tf.squeeze(self.net.current_mask), tf.squeeze(correct_prediction))
                 accuracy = tf.reduce_sum(correct_prediction)*inv_sum
                 
@@ -129,8 +134,8 @@ class GGCNNExperiment():
                 self.reports['max acc.'] = max_acc
                 self.reports['cross_entropy'] = cross_entropy
 
-            else:
-                linear_loss = tf.losses.mean_squared_error(labels = tf.squeeze(self.net.labels), predictions = tf.squeeze(self.net.current_V), weights = tf.squeeze(self.net.current_mask))
+            elif self.loss_type == "linear":
+                linear_loss = tf.losses.mean_squared_error(labels = tf.squeeze(self.net.labels), predictions = tf.squeeze(self.net.current_values['level_0']['V']), weights = tf.squeeze(self.net.current_mask))
 
                 tf.add_to_collection('losses', linear_loss)
                 tf.summary.scalar('loss', linear_loss)
@@ -143,20 +148,44 @@ class GGCNNExperiment():
                 tf.summary.scalar('min_loss', min_loss)
                 self.reports['min loss'] = min_loss
                 self.reports['loss'] = linear_loss
-            
-            #### Added to compute prediction
-#            y_pred = tf.nn.softmax(self.net.current_V)
-#             self.y_pred_cls = tf.argmax(self.net.current_V, 1)
-            ####
 
-    def create_input_variable(self, input):
-        output = []
-        for i in range(len(input)):
-            placeholder = tf.placeholder(tf.as_dtype(input[i].dtype), shape=input[i].shape)
+
+    def create_input_variable(self):
+
+        def initialize_with_placeholder(item):
+            placeholder = tf.placeholder(tf.as_dtype(item.dtype), shape=item.shape)
             var = tf.Variable(placeholder, trainable=False, collections=[tf.GraphKeys.LOCAL_VARIABLES])
-            self.variable_initialization[placeholder] = input[i]
-            output.append(var)
-        return output
+            self.variable_initialization[placeholder] = item
+            return var
+        
+        train_output = {}
+        test_output = {}
+        for l in range(self.number_of_layers):
+            train_output['level_{}'.format(l)] = {}
+            test_output['level_{}'.format(l)] = {}
+
+            level_dataset = getattr(self, 'level_{}_dataset'.format(l))
+
+            for new_key, old_key in zip(['V', 'A'], ['vertices', 'adjacency']):
+                var = initialize_with_placeholder(level_dataset[old_key])
+                train_output['level_{}'.format(l)][new_key] = var
+                test_output['level_{}'.format(l)][new_key] = var
+            if level_dataset['has_embedding']:
+                var = initialize_with_placeholder(level_dataset['embedding'])
+                train_output['level_{}'.format(l)]['E'] = var
+                test_output['level_{}'.format(l)]['E'] = var
+            if level_dataset['has_projection']:
+                var = initialize_with_placeholder(level_dataset['projection'])
+                train_output['level_{}'.format(l)]['P'] = var
+                test_output['level_{}'.format(l)]['P'] = var
+            if l == 0:
+                train_output['mask'] = initialize_with_placeholder(level_dataset['train_input_mask'])
+                test_output['mask'] = initialize_with_placeholder(level_dataset['test_input_mask'])
+                var = initialize_with_placeholder(level_dataset['labels'])
+                train_output['labels'] = var
+                test_output['labels'] = var
+
+        return train_output, test_output
 
     def build_network(self):
 
@@ -168,10 +197,10 @@ class GGCNNExperiment():
         self.net.is_training = tf.placeholder(tf.bool, shape=(), name = 'is_training')
         self.net.global_step = tf.Variable(0, name='global_step', trainable=False, dtype = tf.float32)
 
-        train_input = self.create_input_variable(self.train_input)
-        test_input = self.create_input_variable(self.test_input)
+        train_input, test_input = self.create_input_variable()
 
         input = tf.cond(self.net.is_training, lambda: train_input, lambda: test_input)
+
         self.net_constructor.create_network(self.net, input)
         self.create_loss_function()
 
@@ -183,7 +212,6 @@ class GGCNNExperiment():
         self.snapshot_path = './snapshots/%s/%s/' % (self.dataset_name, self.model_name)
         self.test_summary_path = './summary/%s/test/%s' %(self.dataset_name, self.model_name)
         self.train_summary_path = './summary/%s/train/%s' %(self.dataset_name, self.model_name)
-
 
         i = 0
 
@@ -271,4 +299,4 @@ class GGCNNExperiment():
                 
 #                 return sess.run([self.max_acc_test, self.net.global_step], feed_dict={self.net.is_training:0}), current_A
 #                 return current_A
-                return all_training_reports, all_testing_reports, sess.run(self.net.current_V, feed_dict={self.net.is_training:0})
+                return all_training_reports, all_testing_reports, sess.run(self.net.current_values['level_0']['V'], feed_dict={self.net.is_training:0})

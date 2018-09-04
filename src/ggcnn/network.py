@@ -2,151 +2,116 @@ from ggcnn.layers import *
 
 class GraphCNNNetwork(object):
     def __init__(self):
-        self.current_V = None
-        self.current_A = None
-        self.current_mask = None
-        self.labels = None
+        self.inputs = None
         self.network_debug = False
-        self.current_V_auxilary = None
-        self.current_A_auxilary = None
-        self.current_linkage = None
-        self.M =  None
+
         
     def create_network(self, input):
-        self.current_V = input[0]
-        self.current_A = input[1]
-        self.labels = input[2]
-        self.current_mask = input[3]
-        self.current_V_auxilary = input[4]
-        self.current_A_auxilary = input[5]
-        self.current_forward_linkage = input[6]
-        self.current_reverse_linkage = input[7]
-        self.current_mask_auxilary = input[8]
-        self.initial_V = input[9]
-        self.initial_V_auxilary = input[10]
+        self.current_mask = input['mask']
+        self.labels = input['labels']
+        # self.embedding_projection_dict = embedding_projection_dict
+        # self.number_of_layers = len(embedding_projection_dict)
+        self.current_values = input
+
+        # self.current_V = input[0]
+        # self.current_A = input[1]
+        # self.labels = input[2]
+        # self.current_mask = input[3]
+        # self.current_V_auxilary = input[4]
+        # self.current_A_auxilary = input[5]
+        # self.current_forward_linkage = input[6]
+        # self.current_reverse_linkage = input[7]
+        # self.current_mask_auxilary = input[8]
+        # self.initial_V = input[9]
+        # self.initial_V_auxilary = input[10]
         
-        if self.network_debug:
-            size = tf.reduce_sum(self.current_mask, axis=1)
-            self.current_V = tf.Print(self.current_V, [tf.shape(self.current_V), tf.reduce_max(size), tf.reduce_mean(size)], message='Input V Shape, Max size, Avg. Size:')
+        # if self.network_debug:
+        #     size = tf.reduce_sum(self.current_mask, axis=1)
+        #     self.current_V = tf.Print(self.current_V, [tf.shape(self.current_V), tf.reduce_max(size), tf.reduce_mean(size)], message='Input V Shape, Max size, Avg. Size:')
         
         return input
         
         
-    def make_batchnorm_layer(self, input = None, input_type = None, mask = None):
-        if input is None:
-            input = getattr(self, input_type)
-        if mask is not None:
-            mask = getattr(self, mask)
-        input = make_bn(input, self.is_training, mask = mask, num_updates = self.global_step)
-        if input_type is not None:
-            setattr(self, input_type, input)
-        return input
+    def make_batchnorm_layer(self, input_type = 'V', l = 0):
+        mask = self.current_mask if l == 0 else None
+        input = self.current_values['level_{}'.format(l)][input_type]
+        self.current_values['level_{}'.format(l)][input_type] = make_bn(input, self.is_training, mask = mask, num_updates = self.global_step)
+        return self.current_values['level_{}'.format(l)][input_type]
     
-        
     # Equivalent to 0-hop filter
-    def make_embedding_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
-        with tf.variable_scope(name, default_name='Embed') as scope:
-            self.current_V = make_embedding_layer(self.current_V, no_filters)
+    def make_graph_embedding_layer(self, no_filters, l = 0, name=None, with_bn=True, with_act_func=True):
+        with tf.variable_scope(name, default_name='Embed_level_{}'.format(l)) as scope:
+            self.current_values['level_{}'.format(l)]['V'] = make_embedding_layer(self.current_values['level_{}'.format(l)]['V'], no_filters)
             if with_bn:
-                self.make_batchnorm_layer(input_type = "current_V", mask = "current_mask")
+                self.make_batchnorm_layer(input_type = "V", l = l)
             if with_act_func:
-                self.current_V = tf.nn.relu(self.current_V)
-        return self.current_V, self.current_A, self.current_mask
-    
-    def make_auxilary_embedding_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
-        with tf.variable_scope(name, default_name='Auxilary_Embed') as scope:
-            self.current_V_auxilary = make_embedding_layer(self.current_V_auxilary, no_filters)
-            if with_bn:
-                self.make_batchnorm_layer(input_type = "current_V_auxilary")
-            if with_act_func:
-                self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
-        return self.current_V_auxilary, self.current_A_auxilary
+                self.current_values['level_{}'.format(l)]['V'] = tf.nn.relu(self.current_values['level_{}'.format(l)]['V'])
+        return self.current_values['level_{}'.format(l)]['V'], self.current_values['level_{}'.format(l)]['A'], self.current_mask if l == 0 else None
         
-    def make_dropout_layer(self, input = None, input_type = None, keep_prob=0.5):
-        if input is None:
-            if input_type is None:
-                input_type = "current_V"
-            input = getattr(self, input_type)
-        input = tf.cond(self.is_training, lambda:tf.nn.dropout(input, keep_prob=keep_prob), lambda:(input))
-        if input_type is not None:
-            setattr(self, input_type, input)
-        return input
+    def make_dropout_layer(self, input_type = 'V', l = 0, keep_prob=0.5):
+        input = self.current_values['level_{}'.format(l)][input_type]
+        self.current_values['level_{}'.format(l)][input_type] = tf.cond(self.is_training, lambda:tf.nn.dropout(input, keep_prob=keep_prob), lambda:(input))
+        return self.current_values['level_{}'.format(l)][input_type]
     
         
-    def make_graphcnn_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
-        with tf.variable_scope(name, default_name='Graph-CNN') as scope:
-            self.current_V = make_graphcnn_layer(self.current_V, self.current_A, no_filters)
+    def make_graphcnn_layer(self, no_filters, l = 0, name=None, with_bn=True, with_act_func=True):
+        with tf.variable_scope(name, default_name='Graph-CNN_level_{}'.format(l)) as scope:
+            self.current_values['level_{}'.format(l)]['V'] = make_graphcnn_layer(self.current_values['level_{}'.format(l)]['V'], self.current_values['level_{}'.format(l)]['A'], no_filters)
             if with_bn:
-                self.make_batchnorm_layer(input_type = "current_V", mask = "current_mask")
+                self.make_batchnorm_layer(input_type = "V", l = l)
             if with_act_func:
-                self.current_V = tf.nn.relu(self.current_V)
-            if self.network_debug:
-                batch_mean, batch_var = tf.nn.moments(self.current_V, np.arange(len(self.current_V.get_shape())-1))
-                self.current_V = tf.Print(self.current_V, [tf.shape(self.current_V), batch_mean, batch_var], message='"%s" V Shape, Mean, Var:' % scope.name)
-        return self.current_V
+                self.current_values['level_{}'.format(l)]['V'] = tf.nn.relu(self.current_values['level_{}'.format(l)]['V'])
+            # if self.network_debug:
+            #     batch_mean, batch_var = tf.nn.moments(self.current_V, np.arange(len(self.current_V.get_shape())-1))
+            #     self.current_V = tf.Print(self.current_V, [tf.shape(self.current_V), batch_mean, batch_var], message='"%s" V Shape, Mean, Var:' % scope.name)
+        return self.current_values['level_{}'.format(l)]['V']
 
 
-    def make_auxilary_graphcnn_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
-        with tf.variable_scope(name, default_name='Auxilary-Graph-CNN') as scope:
-            self.current_V_auxilary = make_graphcnn_layer(self.current_V_auxilary, self.current_A_auxilary, no_filters)
-            if with_bn:
-                self.make_batchnorm_layer(input_type = "current_V_auxilary")
-            if with_act_func:
-                self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
-            if self.network_debug:
-                batch_mean, batch_var = tf.nn.moments(self.current_V_auxilary, np.arange(len(self.current_V_auxilary.get_shape())-1))
-                self.current_V_auxilary = tf.Print(self.current_V_auxilary, [tf.shape(self.current_V_auxilary), batch_mean, batch_var], message='"%s" V Shape, Mean, Var:' % scope.name)
-        return self.current_V_auxilary
-
-
-    def make_auxilary_linkage_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
-        with tf.variable_scope(name, default_name='Auxilary-Linkage-Graph-CNN') as scope:
-            V_linkage = make_linkage_layer(self.current_V, self.current_V_auxilary, self.current_forward_linkage, no_filters)
-            
-#             V_linkage = tf.cond(self.is_training, lambda:tf.nn.dropout(V_linkage, keep_prob=0.5), lambda:(V_linkage))
+    def make_embedding_operation_layer(self, no_filters, l = 0, name=None, with_bn=True, with_act_func=False):
+        with tf.variable_scope(name, default_name='Embedding_operation_level_{}'.format(l)) as scope:
+            self.current_values['level_{}'.format(l)]['V_linkage'] = make_linkage_layer(self.current_values['level_{}'.format(l)]['V'], self.current_values['level_{}'.format(l+1)]['V'], self.current_values['level_{}'.format(l)]['E'], no_filters)
 
             if with_bn:
-                V_linkage = self.make_batchnorm_layer(V_linkage, mask = "current_mask")
+                self.make_batchnorm_layer("V_linkage", l = l)
 
-            self.current_V = V_linkage + self.current_V
+            self.current_values['level_{}'.format(l)]['V'] = self.current_values['level_{}'.format(l)]['V_linkage'] + self.current_values['level_{}'.format(l)]['V']
 
-            if with_act_func:
-                self.current_V = tf.nn.relu(self.current_V)
-        return self.current_V
+            # if with_act_func:
+            #     self.current_V = tf.nn.relu(self.current_V)
+        return self.current_values['level_{}'.format(l)]['V']
     
-    def make_reverse_auxilary_linkage_layer(self, no_filters, name=None, with_bn=True, with_act_func=True):
-        with tf.variable_scope(name, default_name='Reverse-Auxilary-Linkage-Graph-CNN') as scope:
-            V_linkage = make_reverse_linkage_layer(self.current_V, self.current_V_auxilary, self.current_reverse_linkage, no_filters)
-#             V_linkage = tf.cond(self.is_training, lambda:tf.nn.dropout(V_linkage, keep_prob=0.5), lambda:(V_linkage))
+    def make_projection_operation_layer(self, no_filters, l = 1, name=None, with_bn=True, with_act_func=False):
+        with tf.variable_scope(name, default_name='Projection_operation_level_{}'.format(l)) as scope:
+            self.current_values['level_{}'.format(l)]['V_linkage'] = make_reverse_linkage_layer(self.current_values['level_{}'.format(l-1)]['V'], self.current_values['level_{}'.format(l)]['V'], self.current_values['level_{}'.format(l)]['P'], no_filters)
             
             if with_bn:
-                V_linkage = self.make_batchnorm_layer(V_linkage)
+                self.make_batchnorm_layer("V_linkage", l = l)
             
-            self.current_V_auxilary = V_linkage + self.current_V_auxilary
+            self.current_values['level_{}'.format(l)]['V'] = self.current_values['level_{}'.format(l)]['V_linkage'] + self.current_values['level_{}'.format(l)]['V']
 
-            if with_act_func:
-                self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
-        return self.current_V_auxilary
+            # if with_act_func:
+            #     self.current_V_auxilary = tf.nn.relu(self.current_V_auxilary)
+        return self.current_values['level_{}'.format(l)]['V']
 
     
-    def make_linkage_adjustment_layer(self, name = None, twoD_W = False):
-        with tf.variable_scope(name, default_name='LinkageAdjustment') as scope:
-            if self.M is None:
-                no_features = self.initial_V.get_shape()[1].value
-                if twoD_W:
-                    W = make_variable_with_weight_decay('M_W', [no_features, no_features], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
-                else:
-                    W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
-                self.M = tf.matmul(W, tf.transpose(W))
-            self.current_forward_linkage = update_linkage_weighting(self.initial_V, self.initial_V_auxilary, self.current_forward_linkage, self.M)
+    # def make_linkage_adjustment_layer(self, name = None, twoD_W = False):
+    #     with tf.variable_scope(name, default_name='LinkageAdjustment') as scope:
+    #         if self.M is None:
+    #             no_features = self.initial_V.get_shape()[1].value
+    #             if twoD_W:
+    #                 W = make_variable_with_weight_decay('M_W', [no_features, no_features], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
+    #             else:
+    #                 W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
+    #             self.M = tf.matmul(W, tf.transpose(W))
+    #         self.current_forward_linkage = update_linkage_weighting(self.initial_V, self.initial_V_auxilary, self.current_forward_linkage, self.M)
     
-    def make_reverse_linkage_adjustment_layer(self, name = None, twoD_W = False):
-        with tf.variable_scope(name, default_name='ReverseLinkageAdjustment') as scope:
-            if self.M is None:
-                no_features = self.initial_V.get_shape()[1].value
-                if twoD_W:
-                    W = make_variable_with_weight_decay('M_W', [no_features, no_features], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
-                else:
-                    W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
-                self.M = tf.matmul(W, tf.transpose(W))
-            self.current_reverse_linkage = update_linkage_weighting(self.initial_V_auxilary, self.initial_V, self.current_reverse_linkage, tf.transpose(self.M))
+    # def make_reverse_linkage_adjustment_layer(self, name = None, twoD_W = False):
+    #     with tf.variable_scope(name, default_name='ReverseLinkageAdjustment') as scope:
+    #         if self.M is None:
+    #             no_features = self.initial_V.get_shape()[1].value
+    #             if twoD_W:
+    #                 W = make_variable_with_weight_decay('M_W', [no_features, no_features], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
+    #             else:
+    #                 W = make_variable_with_weight_decay('M_W', [no_features, 1], stddev = math.sqrt(1.0/(2 * no_features)), initializerType = 'normal')
+    #             self.M = tf.matmul(W, tf.transpose(W))
+    #         self.current_reverse_linkage = update_linkage_weighting(self.initial_V_auxilary, self.initial_V, self.current_reverse_linkage, tf.transpose(self.M))
