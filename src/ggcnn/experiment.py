@@ -73,23 +73,28 @@ class GGCNNExperiment():
             self.level_0_dataset['labels'] = self.level_0_dataset['labels'].astype(np.int32)
 
     
-    def create_data(self, train_idx, test_idx, n_components = 10):
+    def create_data(self, train_idx, test_idx, n_components = None):
         self.train_idx = train_idx
         self.test_idx = test_idx
         with tf.device("/cpu:0"):
             with tf.variable_scope('input') as scope:
                 self.print_ext('Creating training Tensorflow Tensors')
                 
-                # ### PCA
-                # if n_components is not None:
-                #     pca = PCA(n_components=n_components, svd_solver='full')
-                #     reduced_features = pca.fit_transform(vertices.copy())
-                #     print("PCA variance ratio: ", pca.explained_variance_ratio_)
-                #     reduced_features_auxilary = pca.transform(auxilary_vertices.copy())
-                # ###
-                # else:
-                #     reduced_features = vertices
-                #     reduced_features_auxilary = auxilary_vertices
+                ### PCA
+                if n_components is not None:
+                    pca = PCA(n_components=n_components, svd_solver='full')
+                    pca.fit(self.level_0_dataset['features'])
+                    print("PCA variance ratio: ", pca.explained_variance_ratio_)
+                    for l in range(self.number_of_layers):
+                        level_dataset = getattr(self, 'level_{}_dataset'.format(l))
+                        level_dataset['Initial_V'] = pca.transform(level_dataset['features'])
+                        setattr(self, 'level_{}_dataset'.format(l), level_dataset)
+                else:
+                    level_dataset = getattr(self, 'level_{}_dataset'.format(l))
+                    level_dataset['Initial_V'] = level_dataset['features']
+                    setattr(self, 'level_{}_dataset'.format(l), level_dataset)
+                ###
+
                 
                 train_input_mask = np.zeros([self.level_0_dataset['graph_size'], 1]).astype(np.float32)
                 train_input_mask[self.train_idx, :] = 1
@@ -166,7 +171,7 @@ class GGCNNExperiment():
 
             level_dataset = getattr(self, 'level_{}_dataset'.format(l))
 
-            for new_key, old_key in zip(['V', 'A'], ['features', 'adj_mat']):
+            for new_key, old_key in zip(['V', 'A', 'Initial_V'], ['features', 'adj_mat', 'Initial_V']):
                 var = initialize_with_placeholder(level_dataset[old_key])
                 train_output['level_{}'.format(l)][new_key] = var
                 test_output['level_{}'.format(l)][new_key] = var

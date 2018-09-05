@@ -17,11 +17,11 @@ import os
 
 
 SA1s = gpd.read_file('../../../Data - Initial Testing/Geography/1270055001_sa1_2016_aust_shape/SA1_2016_AUST.shp')
-# SA1s = SA1s[SA1s['GCC_NAME16'].isin(['Rest of NSW', 'Greater Sydney'])]
-SA1s = SA1s[SA1s['GCC_NAME16'].isin(['Greater Sydney'])]
+SA1s = SA1s[SA1s['GCC_NAME16'].isin(['Rest of NSW', 'Greater Sydney'])]
+# SA1s = SA1s[SA1s['GCC_NAME16'].isin(['Greater Sydney'])]
 
 resultFiles1 = ["2018-09-03_EXP1_NoAuxilary_Semisupervised-10-{}".format(i) for i in range(10)]
-resultFiles2 = ["2018-09-03_EXP4_LateLateEmbGC_Semisupervised-10-{}".format(i) for i in range(10)]
+resultFiles2 = ["2018-09-03_EXP9_NoneLateGC_Semisupervised-10-{}".format(i) for i in range(10)]
 
 prediction_diff_comb_1 = []
 for resultFile1 in resultFiles1:
@@ -48,18 +48,19 @@ prediction_diff2 = pd.concat(prediction_diff_comb_2, axis = 1).mean(axis = 1)
 #SA1s.set_index('SA1_7DIG16', inplace = True)
 SA1s_sub = SA1s[SA1s['SA1_7DIG16'].isin(map(str,prediction_diff1.index))].copy()
 
-SA1s_sub['PredictionDiffDiff'] = np.abs(prediction_diff1.values) - np.abs(prediction_diff2.values)
+SA1s_sub['PredictionDiffDiff'] = np.abs(prediction_diff2.values) - np.abs(prediction_diff1.values)
 
 # Clip results
-SA1s_sub['PredictionDiffDiff'].clip_upper(10, inplace = True)
-SA1s_sub['PredictionDiffDiff'].clip_lower(-10, inplace = True)
+SA1s_sub['PredictionDiffDiff'].clip_upper(12, inplace = True)
+SA1s_sub['PredictionDiffDiff'].clip_lower(0, inplace = True)
 #
 
 largest_absolute = max(SA1s_sub['PredictionDiffDiff'].max(), -SA1s_sub['PredictionDiffDiff'].min())
 vmin = -largest_absolute
 vmax = largest_absolute
-cmp = plt.get_cmap('RdYlGn')  # Diverging
+# cmp = plt.get_cmap('RdYlGn')  # Diverging
 # cmp = plt.get_cmap('viridis')
+cmp = plt.get_cmap('Greens')
 
 # ax = SA1s_sub.plot(column = 'PredictionDiffDiff', cmap = cmp, vmin = vmin, vmax = vmax)
 # div = make_axes_locatable(ax)
@@ -81,8 +82,8 @@ cmp = plt.get_cmap('RdYlGn')  # Diverging
 ax = plt.axes([0, 0, 1, 1],
               projection=ccrs.Mercator())
 
-# ax.set_extent([149.85, 151.7, -34.4, -33], ccrs.Geodetic())  # Sydney
-ax.set_extent([141.0, 153.7, -37.4, -28.0], ccrs.Geodetic())  # NSW
+# ax.set_extent([150, 151.6, -34.4, -33], ccrs.Mercator())  # Sydney
+ax.set_extent([141.0, 153.7, -37.6, -28.0], ccrs.Mercator())  # NSW
 
 max_value = SA1s_sub['PredictionDiffDiff'].max()
 min_value = SA1s_sub['PredictionDiffDiff'].min()
@@ -92,10 +93,10 @@ for geometry, value in zip(SA1s_sub.geometry, SA1s_sub['PredictionDiffDiff']):
         facecolor = cmp(value)
     except:
         facecolor = 'white'
-    edgecolor = 'white'
+    edgecolor = None
 
-    ax.add_geometries([geometry], ccrs.PlateCarree(),
-                      facecolor=facecolor, edgecolor=edgecolor, linewidth = 0.1)
+    ax.add_geometries([geometry], ccrs.Mercator(),
+                      facecolor=facecolor, edgecolor=edgecolor)#, linewidth = 0.05, alpha = 1)
 ###
 
 sm = plt.cm.ScalarMappable(cmap = cmp, norm = plt.Normalize(min_value, max_value))
@@ -104,7 +105,7 @@ sm._A = []
 # plt.tight_layout()
 plt.colorbar(sm,ax = ax, fraction = 0.03)
 plt.gca().outline_patch.set_visible(False)
-plt.savefig('Results/Visualisations/' + resultFile1 + '-' + resultFile2 + '-SYDAVG.png', dpi = 300, format = 'png', bbox_inches = 'tight')
+plt.savefig('Results/Visualisations/' + resultFile1 + '-' + resultFile2 + '-AVGRev.png', dpi = 300, format = 'png', bbox_inches = 'tight')
 plt.close()
 
 # Histogram of differences

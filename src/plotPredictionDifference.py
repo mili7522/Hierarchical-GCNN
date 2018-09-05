@@ -88,7 +88,7 @@ ax = plt.axes([0, 0, 1, 1],
               projection=ccrs.Mercator())
 
 # ax.set_extent([149.85, 151.7, -34.4, -33], ccrs.Geodetic())  # Sydney
-ax.set_extent([141.0, 153.7, -37.4, -28.0], ccrs.Geodetic())  # NSW
+ax.set_extent([141.0, 153.7, -37.6, -28.0], ccrs.Mercator())  # NSW
 
 # max_value = SA1s_sub['PredictionDiff'].max()
 # min_value = SA1s_sub['PredictionDiff'].min()
@@ -103,7 +103,7 @@ for geometry, value in zip(SA1s_sub.geometry, SA1s_sub['Prediction']):
         facecolor = 'white'
     edgecolor = 'white'
 
-    ax.add_geometries([geometry], ccrs.PlateCarree(),
+    ax.add_geometries([geometry], ccrs.Mercator(),
                       facecolor=facecolor, edgecolor=edgecolor, linewidth = 0.1)
 ###
 

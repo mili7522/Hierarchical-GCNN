@@ -18,6 +18,7 @@ exp5['ExpType'] = 5
 
 results = pd.concat([results, exp1, exp2, exp5])
 results = results[['ExpType', 'l', 'n', 'min_loss']]
+results = np.sqrt(results)
 
 # gp = results.groupby(['ExpType', 'l', 'n'])
 
