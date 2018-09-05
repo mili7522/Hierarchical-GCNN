@@ -21,7 +21,7 @@ ax = plt.axes([0, 0, 1, 1],
               projection=ccrs.Mercator())  #  Was Mercator
 
 # ax.set_extent([149.85, 151.7, -34.4, -33], ccrs.Geodetic())  # Sydney
-ax.set_extent([141.0, 153.5, -37.4, -27.9], ccrs.Mercator())  # NSW  # Was Geodetic
+ax.set_extent([141.0, 153.7, -37.6, -28.0], ccrs.Mercator())  # NSW  # Was Geodetic
 
 cmp = plt.get_cmap('Greens')  # Colour map. Also can use 'jet', 'brg', 'rainbow', 'winter', etc
 # colours = cmp(np.linspace(0,1.0, 10))
@@ -62,7 +62,7 @@ for edge in linkData.itertuples():
         continue
     track = sgeom.LineString(zip(long, lat))
     ax.add_geometries([track], ccrs.Mercator(),
-                      facecolor='none', edgecolor = 'black', linewidth = 0.08)
+                      facecolor='none', edgecolor = 'black', linewidth = 0.1)
 
 
 sm = plt.cm.ScalarMappable(cmap=cmp,norm=plt.Normalize(0,max_value))
