@@ -18,10 +18,10 @@ linkFile = "Geography/2018-09-01-NSW-Neighbouring_Suburbs_With_Bridges-Filtered.
 centresFile = "Geography/2018-09-01-NSW-SA1-2016Centres.csv"
 
 ax = plt.axes([0, 0, 1, 1],
-              projection=ccrs.Mercator())
+              projection=ccrs.Mercator())  #  Was Mercator
 
 # ax.set_extent([149.85, 151.7, -34.4, -33], ccrs.Geodetic())  # Sydney
-ax.set_extent([141.0, 153.7, -37.4, -28.0], ccrs.Geodetic())  # NSW
+ax.set_extent([141.0, 153.5, -37.4, -27.9], ccrs.Mercator())  # NSW  # Was Geodetic
 
 cmp = plt.get_cmap('Greens')  # Colour map. Also can use 'jet', 'brg', 'rainbow', 'winter', etc
 # colours = cmp(np.linspace(0,1.0, 10))
@@ -39,7 +39,7 @@ for sa1, geometry in zip(nsw.SA1_7DIG16, nsw.geometry):
         facecolor = 'white'
     edgecolor = 'white'
 
-    ax.add_geometries([geometry], ccrs.PlateCarree(),
+    ax.add_geometries([geometry], ccrs.Mercator(),
                       facecolor=facecolor, edgecolor=edgecolor, linewidth = 0.1)
 
 
@@ -61,8 +61,8 @@ for edge in linkData.itertuples():
     except:
         continue
     track = sgeom.LineString(zip(long, lat))
-    ax.add_geometries([track], ccrs.PlateCarree(),
-                      facecolor='none', edgecolor = 'black', linewidth = 0.1)
+    ax.add_geometries([track], ccrs.Mercator(),
+                      facecolor='none', edgecolor = 'black', linewidth = 0.08)
 
 
 sm = plt.cm.ScalarMappable(cmap=cmp,norm=plt.Normalize(0,max_value))
