@@ -74,8 +74,7 @@ def load_dataset():
             dataset['level_0']['adj_mat'][b, a] = 1
 
     # Load SA2 Link Features
-    # with open('Data/Geography/2018-09-01-SA2Neighbouring_Suburbs_With_Bridges-Filtered.csv', 'r') as file:
-    with open('Data/SA2TTW.csv', 'r') as file:
+    with open('Data/Geography/2018-09-01-SA2Neighbouring_Suburbs_With_Bridges-Filtered.csv', 'r') as file:
         dataset['level_1']['adj_mat'] = np.zeros((len(dataset['level_1']['keys']), len(dataset['level_1']['keys'])))
         for i, line in enumerate(file):
             if i == 0:  # Skip first line (header)
@@ -83,8 +82,8 @@ def load_dataset():
             s = line[:-1].split(',')
             a = dataset['level_1']['keys'].index(s[0])
             b = dataset['level_1']['keys'].index(s[1])
-            dataset['level_1']['adj_mat'][a, b] += float(s[2])  # Add symmetrically
-            dataset['level_1']['adj_mat'][b, a] += float(s[2])
+            dataset['level_1']['adj_mat'][a, b] = 1
+            dataset['level_1']['adj_mat'][b, a] = 1
     
     
     # Load SA1, SA2 Links
@@ -160,7 +159,8 @@ class SA1Experiment():
                     linkageActFun = True, linkageBatchNorm = True, linkageNeurons = None,
                     auxilaryEmbedding1 = False, auxilaryEmbedding2 = False,
                     auxilaryGraph = False, linkage_adjustment_components = None, reverse_linkage_adjustment_components = None,
-                    linkage_W_2D = False, SA4Graph = False, auxilaryProjectSA4 = False, SA3Graph = False, auxilaryProjectSA3 = False):
+                    linkage_W_2D = False, SA4Graph = False, auxilaryProjectSA4 = False, SA3Graph = False, auxilaryProjectSA3 = False,
+                    auxilaryProjectSA3b = False):
         self.blocks = blocks
         self.neurons = neurons
         self.reverseLinkagePosition = reverseLinkagePosition
@@ -178,6 +178,7 @@ class SA1Experiment():
         self.auxilaryProjectSA4 = auxilaryProjectSA4
         self.SA3Graph = SA3Graph
         self.auxilaryProjectSA3 = auxilaryProjectSA3
+        self.auxilaryProjectSA3b = auxilaryProjectSA3b
     
     def create_network(self, net, input):
         net.create_network(input)
@@ -225,6 +226,10 @@ class SA1Experiment():
         if self.auxilaryEmbedding2:
             net.make_graph_embedding_layer(self.neurons, l = 1)
             net.make_dropout_layer(l = 1)
+
+        if self.auxilaryProjectSA3b:
+            net.make_projection_operation_layer(self.linkageNeurons, l = 2, with_act_func = self.linkageActFun, with_bn = self.linkageBatchNorm)
+
         if self.auxilaryGraph:
             net.make_graphcnn_layer(self.neurons, l = 1)
             net.make_dropout_layer(l = 1)
@@ -349,100 +354,134 @@ def runBatch(expParameters, l = 2, n = 128, exp_name = None):
 
 
 dfs = []
-dfSaveName = "Results/2018-09-05-JourneyToWorkTest.csv"
+dfSaveName = "Results/2018-09-05-MultiHierachyTests.csv"
 
-### Test 50
-exp_number = 50
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": False, "auxilaryProjectSA3": False}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP50_NoneLateGC_JTW")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-
-### Test 51
-exp_number = 51
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": False, "auxilaryProjectSA4": True, "SA3Graph": False, "auxilaryProjectSA3": True}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP51_NoneLateGC_SA4SA3_JTW")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 52
-exp_number = 52
-expParameters = {"reverseLinkagePosition": "None", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": True, "auxilaryProjectSA3": True}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP52_NoneLateGC_SA3GC_JTW")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 53
-exp_number = 53
-expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": False, "auxilaryProjectSA3": False}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP53_EarlyLateGC_JTW")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 54
-exp_number = 54
-expParameters = {"reverseLinkagePosition": "Early", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
-                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": False, "auxilaryGraph": True,
-                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": True, "auxilaryProjectSA4": True, "SA3Graph": True, "auxilaryProjectSA3": True}
-print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP54_EarlyLateGC_SA4GCSA3GC_JTW")
-dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
-
-### Combine and output
-df = pd.concat(dfs); df.to_csv(dfSaveName)
-
-### Test 55
-exp_number = 55
+### Test 40
+exp_number = 40
 expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
                  "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": False, "auxilaryProjectSA3": False}
+                 "SA4Graph": False, "auxilaryProjectSA4": True, "SA3Graph": False, "auxilaryProjectSA3": True, "auxilaryProjectSA3b": False}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP55_LateLateEmbGC_JTW")
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP40_LateLateEmbGC_SA4SA3")
 dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
 
-### Test 56
-exp_number = 56
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 41
+exp_number = 41
 expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
                  "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": False, "auxilaryProjectSA4": True, "SA3Graph": False, "auxilaryProjectSA3": True}
+                 "SA4Graph": True, "auxilaryProjectSA4": True, "SA3Graph": True, "auxilaryProjectSA3": True, "auxilaryProjectSA3b": False}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP56_LateLateEmbGC_SA4SA3_JTW")
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP41_LateLateEmbGC_SA4GCSA3GC")
 dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
 
-### Test 57
-exp_number = 57
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 42
+exp_number = 42
 expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
                  "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
                  "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
-                 "SA4Graph": True, "auxilaryProjectSA4": True, "SA3Graph": True, "auxilaryProjectSA3": True}
+                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": False, "auxilaryProjectSA3": True, "auxilaryProjectSA3b": False}
 print(exp_number, expParameters)
-df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP57_LateLateEmbGC_SA4GCSA3GC_JTW")
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP42_LateLateEmbGC_SA3")
 dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 43
+exp_number = 43
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
+                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": True, "auxilaryProjectSA3": True, "auxilaryProjectSA3b": False}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP43_LateLateEmbGC_SA3GC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 44
+exp_number = 44
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
+                 "SA4Graph": False, "auxilaryProjectSA4": True, "SA3Graph": True, "auxilaryProjectSA3": True, "auxilaryProjectSA3b": False}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP44_LateLateEmbGC_SA4SA3GC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 45
+exp_number = 45
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
+                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": False, "auxilaryProjectSA3": False, "auxilaryProjectSA3b": True}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP45_LateLateEmbGC_SA3b")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 46
+exp_number = 46
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
+                 "SA4Graph": False, "auxilaryProjectSA4": False, "SA3Graph": True, "auxilaryProjectSA3": False, "auxilaryProjectSA3b": True}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP46_LateLateEmbGC_SA3bGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 47
+exp_number = 47
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
+                 "SA4Graph": False, "auxilaryProjectSA4": True, "SA3Graph": True, "auxilaryProjectSA3": False, "auxilaryProjectSA3b": True}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP47_LateLateEmbGC_SA4SA3bGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 48
+exp_number = 48
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
+                 "SA4Graph": True, "auxilaryProjectSA4": True, "SA3Graph": True, "auxilaryProjectSA3": False, "auxilaryProjectSA3b": True}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP48_LateLateEmbGC_SA4GCSA3bGC")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
+
+### Test 49
+exp_number = 49
+expParameters = {"reverseLinkagePosition": "Late", "linkagePosition": "Late", "linkageActFun": False, "linkageBatchNorm": True,
+                 "linkageNeurons": None, "auxilaryEmbedding1": False, "auxilaryEmbedding2": True, "auxilaryGraph": True,
+                 "linkage_adjustment_components": None, "reverse_linkage_adjustment_components": None, "linkage_W_2D": False,
+                 "SA4Graph": False, "auxilaryProjectSA4": True, "SA3Graph": False, "auxilaryProjectSA3": False, "auxilaryProjectSA3b": True}
+print(exp_number, expParameters)
+df = runBatch(expParameters = expParameters, exp_name = "2018-09-05_EXP49_LateLateEmbGC_SA4SA3b")
+dfs.append( pd.concat([pd.DataFrame({"ExpNo": [exp_number]*len(df)}), df], axis = 1) )
+
+### Combine and output
+df = pd.concat(dfs); df.to_csv(dfSaveName)
