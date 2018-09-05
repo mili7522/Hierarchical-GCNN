@@ -218,10 +218,10 @@ def appendResults(resultsDict, results, r2, corr, i, supervised, no_folds):
 def getPrediction(idx_split, results):
     test_idx = np.flatnonzero(idx_split == 1)
     predictions = results[-1].ravel()[test_idx]
-    actual = dataset[2].ravel()[test_idx]
+    actual = dataset['level_0']['labels'].ravel()[test_idx]
 
-    predictions_df = pd.DataFrame(np.hstack((results[-1], dataset[2].reshape((-1,1)), idx_split)), columns=['Prediction', 'Actual', 'idx_split'])
-    predictions_df.index = np.array(keys[0], dtype = int)
+    predictions_df = pd.DataFrame(np.hstack((results[-1], dataset['level_0']['labels'].reshape((-1,1)), idx_split)), columns=['Prediction', 'Actual', 'idx_split'])
+    predictions_df.index = np.array(dataset['level_0']['keys'], dtype = int)
 
     r2 = sklearn.metrics.r2_score(predictions, actual)
     corr = np.corrcoef(predictions, actual)[1,0]
@@ -283,7 +283,7 @@ def runBatch(expParameters, l = 2, n = 128, exp_name = None):
 
 
 dfs = []
-dfSaveName = "Results/2018-09-03-MainTests3Adjustment.csv"
+dfSaveName = "Results/2018-09-06-AdjustmentTests2.csv"
 
 ### Test 9002
 exp_number = 9002
