@@ -90,9 +90,10 @@ class GGCNNExperiment():
                         level_dataset['Initial_V'] = pca.transform(level_dataset['features'])
                         setattr(self, 'level_{}_dataset'.format(l), level_dataset)
                 else:
-                    level_dataset = getattr(self, 'level_{}_dataset'.format(l))
-                    level_dataset['Initial_V'] = level_dataset['features']
-                    setattr(self, 'level_{}_dataset'.format(l), level_dataset)
+                    for l in range(self.number_of_layers):
+                        level_dataset = getattr(self, 'level_{}_dataset'.format(l))
+                        level_dataset['Initial_V'] = level_dataset['features']
+                        setattr(self, 'level_{}_dataset'.format(l), level_dataset)
                 ###
 
                 
