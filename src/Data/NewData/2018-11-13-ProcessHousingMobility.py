@@ -3,9 +3,11 @@ import numpy as np
 
 df = pd.read_csv('Data/NewData/SA1-HouseholdMobility.csv', index_col=0)
 
-applicable = df['Total'] - df['Not stated'] - df['Not applicable']
+total = df['All residents in the household aged one year and over had a different address one year ago'] + \
+        df['Some residents in the household aged one year and over had a different address one year ago'] + \
+        df['No residents in the household aged one year and over had a different address one year ago']
 
-df['Predict'] = df['Some residents in the household aged one year and over had a different address one year ago'] / applicable * 100
+df['Predict'] = df['All residents in the household aged one year and over had a different address one year ago'] / total * 100
     
 df.dropna(inplace = True)
 
