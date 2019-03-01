@@ -106,9 +106,6 @@ venv.bak/
 src/Data/Unused/
 src/Graphs/
 src/ggcnn/*.tar.gz
-src/ggcnn/experiment_linear.py
-src/ggcnn/experiment_old.py
-src/ggcnn/experiment_ordinal.py
 src/ggcnn/gis_utils.py
 PBS/Output
 src/ggcnn/*.7z
@@ -118,7 +115,4 @@ src/Data/Geography/2018-09-01-NSW2016SA2/
 src/Data/Geography/*.zip
 *.py~
 *.pbs~
-src/Results/Preliminary/
-src/Results/Visualisations/
-src/Results/Predictions
 src/Results/
